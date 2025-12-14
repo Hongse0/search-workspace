@@ -1,9 +1,0 @@
-spring:
-  elasticsearch:
-    uris: http://localhost:9200
-    connection-timeout: 10s
-    socket-timeout: 30s
-
-logging:
-  level:
-    org.elasticsearch.client: TRACE # Elasticsearch? ?? ??? ??
