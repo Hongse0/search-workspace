@@ -24,7 +24,7 @@ public class SearchController {
      */
     @PostMapping("/stocks/sync")
     public StockSyncResponse syncStocksToEs() throws IOException {
-        List<StockItemMinView> items = stockItemMasterRepo.findAllActiveMin();
+        List<StockItemMinView> items = stockItemMasterRepo.findAllByActiveYn("Y");
         int synced = stockItemEsIndexService.bulkUpsertMin(items);
 
         return new StockSyncResponse(

@@ -8,7 +8,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface StockItemMasterRepo extends JpaRepository<StockItemMaster, Long> {
     List<StockItemMaster> findAllBySrtnCdIn(List<String> codes);
 
-    List<StockItemMinView> findAllActiveMin();
+    List<StockItemMinView> findAllByActiveYn(String activeYn);
+
 }
 
 
