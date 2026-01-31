@@ -1,5 +1,8 @@
 package com.sy.side.stock.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.sy.side.stock.domain.StockItemMaster;
 import com.sy.side.stock.dto.StockItemDocument;
 import com.sy.side.stock.repository.StockItemMasterRepo;
@@ -26,6 +29,7 @@ public class ElasticSearchService {
     private static final String ES_INDEX = "stock_item_master";
     private static final int PER_PAGE = 1000;
 
+    // todo : 예외처리 해줘야함
     @Transactional(readOnly = true)
     public void syncEs(String basDt) {
 
@@ -33,10 +37,15 @@ public class ElasticSearchService {
         long totalIndexed = 0;
 
         while (true) {
-            org.springframework.data.domain.Page<StockItemMaster> result =
-                    stockItemMasterRepo.findByBasDt(basDt, PageRequest.of(page, PER_PAGE));
+            var pageable = PageRequest.of(page, PER_PAGE);
 
-            if (result.isEmpty()) break;
+            org.springframework.data.domain.Page<StockItemMaster> result =
+                    stockItemMasterRepo.findByBasDt(basDt, pageable);
+
+            if (result.isEmpty()) {
+                log.info("[ES Sync STOP] empty page. basDt={}, page={}", basDt, page);
+                break;
+            }
 
             List<IndexQuery> queries = result.getContent().stream()
                     .map(StockItemDocument::from)
@@ -46,18 +55,14 @@ public class ElasticSearchService {
                             .build())
                     .toList();
 
+
             elasticsearchOperations.bulkIndex(queries, IndexCoordinates.of(ES_INDEX));
             totalIndexed += queries.size();
-
-            log.info("[ES Sync] basDt={}, page={}, size={}, totalIndexed={}",
-                    basDt, page, queries.size(), totalIndexed);
 
             if (!result.hasNext()) break;
             page++;
         }
-
-        elasticsearchOperations.indexOps(IndexCoordinates.of(ES_INDEX)).refresh();
-        log.info("[ES Sync DONE] basDt={}, totalIndexed={}", basDt, totalIndexed);
+        log.info("[ES Sync DONE] index={}, basDt={}, totalIndexed={}", ES_INDEX, basDt, totalIndexed);
     }
 
 }
