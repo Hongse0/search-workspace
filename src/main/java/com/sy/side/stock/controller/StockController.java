@@ -1,5 +1,6 @@
 package com.sy.side.stock.controller;
 
+import com.sy.side.stock.service.ElasticSearchService;
 import com.sy.side.stock.service.StockSyncService;
 import com.sy.side.stock.util.StockUtil;
 import java.time.LocalDateTime;
@@ -15,10 +16,18 @@ import org.springframework.web.bind.annotation.RestController;
 public class StockController {
 
     private final StockSyncService stockSyncService;
+    private final ElasticSearchService elasticSearchService;
 
     @PostMapping("/sync/krx")
     public void syncKrx() {
         String basDt = StockUtil.resolveKrxBaseDate(LocalDateTime.now(ZoneId.of("Asia/Seoul")));
         stockSyncService.syncAll(basDt);
+    }
+
+    /** es 서버에 데이터 적재 */
+    @PostMapping("/sync/es")
+    public void syncEs() {
+        String basDt = StockUtil.resolveKrxBaseDate(LocalDateTime.now(ZoneId.of("Asia/Seoul")));
+        elasticSearchService.syncEs(basDt);
     }
 }
