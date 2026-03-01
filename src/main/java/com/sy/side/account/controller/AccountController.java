@@ -2,6 +2,7 @@ package com.sy.side.account.controller;
 
 
 import com.sy.side.account.dto.request.AccountCreateRequest;
+import com.sy.side.stock.dto.request.BuyStockRequest;
 import com.sy.side.account.dto.response.AccountResponse;
 import com.sy.side.account.dto.response.AccountSelectResponse;
 import com.sy.side.account.service.AccountService;
@@ -68,6 +69,13 @@ public class AccountController {
     ) {
         Long memberId = userSession.getMemberSession().getMemberId();
         accountService.deleteAccount(memberId, accountId);
+    }
+
+    @PostMapping("/buy/korea/stock")
+    public void buyStock(@RequestBody BuyStockRequest req){
+
+        accountService.insertStockInfo(req);
+
     }
 
 }

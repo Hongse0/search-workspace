@@ -121,4 +121,8 @@ public class StockItemMaster {
         this.corpNm = item.corpNm();
         this.activeYn = "Y";
     }
+
+    public String tradeSymbol() {
+        return this.srtnCd; // 005930 같은 단축코드
+    }
 }

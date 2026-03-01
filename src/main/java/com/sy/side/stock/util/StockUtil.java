@@ -1,5 +1,6 @@
 package com.sy.side.stock.util;
 
+import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -32,5 +33,9 @@ public final class StockUtil {
         }
 
         return date.format(DateTimeFormatter.BASIC_ISO_DATE); // YYYYMMDD
+    }
+
+    public static BigDecimal defaultZero(BigDecimal value) {
+        return value != null ? value : BigDecimal.ZERO;
     }
 }

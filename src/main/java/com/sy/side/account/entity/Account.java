@@ -59,4 +59,12 @@ public class Account {
             cashBalance = BigDecimal.ZERO;
         }
     }
+
+    public void decreaseCash(BigDecimal amount) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("amount must be >= 0");
+        }
+        this.cashBalance = this.cashBalance.subtract(amount);
+    }
+
 }

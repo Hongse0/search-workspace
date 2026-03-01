@@ -1,5 +1,7 @@
 package com.sy.side.stock.controller;
 
+import com.sy.side.stock.dto.request.BuyStockRequest;
+import com.sy.side.stock.application.facade.StockFacade;
 import com.sy.side.stock.service.ElasticSearchService;
 import com.sy.side.stock.service.StockSyncService;
 import com.sy.side.stock.util.StockUtil;
@@ -7,6 +9,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -17,6 +20,7 @@ public class StockController {
 
     private final StockSyncService stockSyncService;
     private final ElasticSearchService elasticSearchService;
+    private final StockFacade stockFacade;
 
     @PostMapping("/sync/krx")
     public void syncKrx() {
@@ -29,5 +33,12 @@ public class StockController {
     public void syncEs() {
         String basDt = StockUtil.resolveKrxBaseDate(LocalDateTime.now(ZoneId.of("Asia/Seoul")));
         elasticSearchService.syncEs(basDt);
+    }
+
+    @PostMapping("/korea/buy")
+    public String buyStock(@RequestBody BuyStockRequest req){
+
+        stockFacade.buyKorea(req);
+        return "등록 완료";
     }
 }
