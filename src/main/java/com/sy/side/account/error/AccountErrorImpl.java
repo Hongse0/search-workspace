@@ -11,7 +11,8 @@ public enum AccountErrorImpl implements ErrorCode {
     ACCOUNT_ERROR("20001", HttpStatus.NOT_FOUND, Collections.singletonList("계정 등록중 오류 발생.")),
     SAME_ACCOUNT_EXIST("20002",HttpStatus.NOT_FOUND, Collections.singletonList("중복된 계좌 존재")),
     ACCOUNT_NOT_FOUND("20003", HttpStatus.NOT_FOUND, Collections.singletonList("계좌 미존재")),
-    ACCOUNT_FORBIDDEN("20004", HttpStatus.FORBIDDEN, Collections.singletonList("권한 없음"));
+    ACCOUNT_FORBIDDEN("20004", HttpStatus.FORBIDDEN, Collections.singletonList("권한 없음")),
+    ACCOUNT_HAS_TRADES("2005",HttpStatus.BAD_REQUEST, Collections.singletonList("거래내역이 존재하는 계좌는 삭제할 수 없습니다."));
 
     private final String code;
     private final HttpStatus status;

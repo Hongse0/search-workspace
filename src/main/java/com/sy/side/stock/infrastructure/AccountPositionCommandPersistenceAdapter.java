@@ -1,7 +1,7 @@
 package com.sy.side.stock.infrastructure;
 
-import com.sy.side.account.entity.Account;
-import com.sy.side.account.repository.AccountRepository;
+import com.sy.side.account.domain.Account;
+import com.sy.side.account.infrastructure.jpa.AccountRepository;
 import com.sy.side.stock.application.dto.command.ApplyBuyCommand;
 import com.sy.side.stock.application.port.out.AccountPositionCommandPort;
 import com.sy.side.stock.domain.AccountPosition;

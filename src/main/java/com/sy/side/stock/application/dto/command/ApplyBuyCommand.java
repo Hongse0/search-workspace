@@ -1,6 +1,6 @@
 package com.sy.side.stock.application.dto.command;
 
-import com.sy.side.account.entity.Market;
+import com.sy.side.trade.domain.Market;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;

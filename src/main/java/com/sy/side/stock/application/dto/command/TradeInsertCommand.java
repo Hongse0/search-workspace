@@ -1,7 +1,7 @@
 package com.sy.side.stock.application.dto.command;
 
-import com.sy.side.account.entity.Market;
-import com.sy.side.account.entity.TradeSide;
+import com.sy.side.trade.domain.Market;
+import com.sy.side.trade.domain.TradeSide;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 

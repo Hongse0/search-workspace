@@ -2,14 +2,13 @@ package com.sy.side.stock.application.service;
 
 import static com.sy.side.stock.util.StockUtil.defaultZero;
 
-import com.sy.side.account.entity.Market;
-import com.sy.side.account.entity.TradeSide;
+import com.sy.side.trade.domain.Market;
+import com.sy.side.trade.domain.TradeSide;
 import com.sy.side.stock.application.dto.command.ApplyBuyCommand;
 import com.sy.side.stock.application.dto.command.TradeInsertCommand;
 import com.sy.side.stock.application.port.in.BuyKoreaStockUseCase;
 import com.sy.side.stock.application.port.out.AccountPositionCommandPort;
-import com.sy.side.stock.application.port.out.StockItemMasterQueryPort;
-import com.sy.side.stock.application.port.out.TradeCommandPort;
+import com.sy.side.trade.application.port.out.TradeCommandPort;
 import com.sy.side.stock.dto.request.BuyStockRequest;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

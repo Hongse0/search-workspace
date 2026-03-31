@@ -1,7 +1,7 @@
 package com.sy.side.stock.domain;
 
-import com.sy.side.account.entity.Account;
-import com.sy.side.account.entity.Market;
+import com.sy.side.account.domain.Account;
+import com.sy.side.trade.domain.Market;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

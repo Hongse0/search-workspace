@@ -1,6 +1,6 @@
 package com.sy.side.account.dto.response;
 
-import com.sy.side.account.entity.Account;
+import com.sy.side.account.domain.Account;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import lombok.Getter;

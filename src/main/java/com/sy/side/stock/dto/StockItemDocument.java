@@ -1,9 +1,10 @@
 package com.sy.side.stock.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.sy.side.stock.domain.StockItemMaster;
 import lombok.Builder;
 import lombok.Getter;
+import org.springframework.data.elasticsearch.annotations.Field;
+import org.springframework.data.elasticsearch.annotations.FieldType;
 
 import java.time.LocalDateTime;
 
@@ -11,36 +12,37 @@ import java.time.LocalDateTime;
 @Builder
 public class StockItemDocument {
 
+    @Field(type = FieldType.Long, name = "id")
     private Long id;
 
-    @JsonProperty("bas_dt")
+    @Field(type = FieldType.Keyword, name = "bas_dt")
     private String basDt;
 
-    @JsonProperty("srtn_cd")
+    @Field(type = FieldType.Keyword, name = "srtn_cd")
     private String srtnCd;
 
-    @JsonProperty("isin_cd")
+    @Field(type = FieldType.Keyword, name = "isin_cd")
     private String isinCd;
 
-    @JsonProperty("mrkt_ctg")
+    @Field(type = FieldType.Keyword, name = "mrkt_ctg")
     private String mrktCtg;
 
-    @JsonProperty("itms_nm")
+    @Field(type = FieldType.Text, name = "itms_nm")
     private String itmsNm;
 
-    @JsonProperty("crno")
+    @Field(type = FieldType.Keyword, name = "crno")
     private String crno;
 
-    @JsonProperty("corp_nm")
+    @Field(type = FieldType.Text, name = "corp_nm")
     private String corpNm;
 
-    @JsonProperty("active_yn")
+    @Field(type = FieldType.Keyword, name = "active_yn")
     private String activeYn;
 
-    @JsonProperty("created_at")
+    @Field(type = FieldType.Date, name = "created_at")
     private LocalDateTime createdAt;
 
-    @JsonProperty("updated_at")
+    @Field(type = FieldType.Date, name = "updated_at")
     private LocalDateTime updatedAt;
 
     public static StockItemDocument from(StockItemMaster e) {

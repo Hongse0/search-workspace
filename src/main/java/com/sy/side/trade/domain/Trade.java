@@ -1,5 +1,6 @@
-package com.sy.side.account.entity;
+package com.sy.side.trade.domain;
 
+import com.sy.side.account.domain.Account;
 import com.sy.side.stock.domain.StockItemMaster;
 import jakarta.persistence.*;
 import lombok.*;

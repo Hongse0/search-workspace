@@ -1,13 +1,12 @@
 package com.sy.side.stock.infrastructure;
 
-import com.sy.side.account.entity.Account;
-import com.sy.side.account.entity.Trade;
-import com.sy.side.account.repository.AccountRepository;
+import com.sy.side.account.domain.Account;
+import com.sy.side.trade.domain.Trade;
+import com.sy.side.account.infrastructure.jpa.AccountRepository;
 import com.sy.side.stock.application.dto.command.TradeInsertCommand;
-import com.sy.side.stock.application.port.out.TradeCommandPort;
+import com.sy.side.trade.application.port.out.TradeCommandPort;
 import com.sy.side.stock.domain.StockItemMaster;
-import com.sy.side.stock.dto.request.BuyStockRequest;
-import com.sy.side.stock.infrastructure.jpa.TradeRepository;
+import com.sy.side.trade.infrastructure.jpa.TradeRepository;
 import com.sy.side.stock.repository.StockItemMasterRepo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -45,6 +44,11 @@ public class TradeCommandPersistenceAdapter implements TradeCommandPort {
                 .build();
 
         return tradeRepository.save(trade).getTradeId();
+    }
+
+    @Override
+    public void deleteByAccountId(Long accountId) {
+
     }
 }
 
