@@ -24,6 +24,7 @@ public class AccountController {
     private final GetAccountUseCase getAccountUseCase;
     private final DeleteAccountUseCase deleteAccountUseCase;
 
+    /** 계좌 등록 */
     @PostMapping("/register")
     public AccountResponse createAccount(
             @UserParam UserSession userSession,
@@ -35,12 +36,14 @@ public class AccountController {
         return createAccountUseCase.createAccount(memberId, request);
     }
 
+    /** 계좌 전체 조회 */
     @PostMapping("/select/all")
     public List<AccountSelectResponse> selectAllAccount(@UserParam UserSession userSession) {
         Long memberId = userSession.getMemberSession().getMemberId();
         return getAccountUseCase.findAllAccount(memberId);
     }
 
+    /** 계좌 전체 삭제 */
     @DeleteMapping("/{accountId}")
     public void deleteAccount(
             @UserParam UserSession userSession,

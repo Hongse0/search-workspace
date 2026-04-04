@@ -98,32 +98,23 @@ public class Account {
 
     public void validateActive() {
         if (!this.active) {
-            throw new BizException(AccountErrorImpl.ACCOUNT_ERROR);
+            throw new BizException(AccountErrorImpl.ACCOUNT_INACTIVE);
         }
     }
 
-    public void decreaseCash(BigDecimal amount) {
+    public void validateWithdrawable(BigDecimal amount) {
+        BigDecimal balance = this.cashBalance == null ? BigDecimal.ZERO : this.cashBalance;
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new BizException(AccountErrorImpl.ACCOUNT_ERROR);
+            throw new IllegalArgumentException("출금 금액이 올바르지 않습니다.");
         }
-
-        if (this.cashBalance.compareTo(amount) < 0) {
-            throw new BizException(AccountErrorImpl.ACCOUNT_ERROR);
+        if (balance.compareTo(amount) < 0) {
+            throw new BizException(AccountErrorImpl.INSUFFICIENT_BALANCE);
         }
+    }
 
+    public void withdraw(BigDecimal amount) {
+        validateWithdrawable(amount);
         this.cashBalance = this.cashBalance.subtract(amount);
-    }
-
-    public void increaseCash(BigDecimal amount) {
-        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new BizException(AccountErrorImpl.ACCOUNT_ERROR);
-        }
-
-        this.cashBalance = this.cashBalance.add(amount);
-    }
-
-    public void deactivate() {
-        this.active = false;
     }
 
     @PrePersist

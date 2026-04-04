@@ -2,18 +2,26 @@ package com.sy.side.stock.application.service;
 
 import static com.sy.side.stock.util.StockUtil.defaultZero;
 
-import com.sy.side.trade.domain.Market;
-import com.sy.side.trade.domain.TradeSide;
+import com.sy.side.account.application.port.out.AccountCommandPort;
+import com.sy.side.account.application.port.out.AccountQueryPort;
+import com.sy.side.account.domain.Account;
+import com.sy.side.account.error.AccountErrorImpl;
+import com.sy.side.common.exception.BizException;
 import com.sy.side.stock.application.dto.command.ApplyBuyCommand;
 import com.sy.side.stock.application.dto.command.TradeInsertCommand;
-import com.sy.side.stock.application.port.in.BuyKoreaStockUseCase;
 import com.sy.side.stock.application.port.out.AccountPositionCommandPort;
-import com.sy.side.trade.application.port.out.TradeCommandPort;
+import com.sy.side.stock.application.port.out.StockItemMasterQueryPort;
+import com.sy.side.stock.domain.StockItemMaster;
 import com.sy.side.stock.dto.request.BuyStockRequest;
+import com.sy.side.trade.application.port.in.BuyKoreaStockUseCase;
+import com.sy.side.trade.application.port.out.TradeCommandPort;
+import com.sy.side.trade.domain.Market;
+import com.sy.side.trade.domain.TradeSide;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -21,9 +29,24 @@ public class StockService implements BuyKoreaStockUseCase {
 
     private final TradeCommandPort tradeCommandPort;
     private final AccountPositionCommandPort accountPositionCommandPort;
+    private final AccountQueryPort accountQueryPort;
+    private final AccountCommandPort accountCommandPort;
+    private final StockItemMasterQueryPort stockItemMasterQueryPort;
 
+    @Transactional
     @Override
     public void buyKorea(BuyStockRequest req) {
+        validateRequest(req);
+
+        Account account = accountQueryPort.findById(req.getAccountId())
+                .orElseThrow(() -> new BizException(AccountErrorImpl.ACCOUNT_NOT_FOUND));
+
+        account.validateActive();
+
+        StockItemMaster stock = stockItemMasterQueryPort.findById(req.getStockId())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 종목입니다."));
+
+        validateStock(stock);
 
         BigDecimal fee = defaultZero(req.getFee());
         BigDecimal tax = defaultZero(req.getTax());
@@ -31,16 +54,20 @@ public class StockService implements BuyKoreaStockUseCase {
                 ? req.getTradeDateTime()
                 : LocalDateTime.now();
 
-        Market market = Market.KR;
         BigDecimal grossAmount = req.getPrice().multiply(BigDecimal.valueOf(req.getQuantity()));
-        BigDecimal totalAmount = grossAmount.add(fee).add(tax).negate();
-        LocalDateTime tradeAt = req.getTradeDateTime() != null ? req.getTradeDateTime() : LocalDateTime.now();
+        BigDecimal buyAmount = grossAmount.add(fee).add(tax);
 
-        // Todo : assembler로 수정
+        account.validateWithdrawable(buyAmount);
+
+        BigDecimal totalAmount = buyAmount.negate();
+
+        // 예수금 차감
+        accountCommandPort.withdrawCash(req.getAccountId(), buyAmount);
+
         TradeInsertCommand command = new TradeInsertCommand(
                 req.getAccountId(),
                 req.getStockId(),
-                market,
+                Market.KR,
                 TradeSide.BUY,
                 req.getQuantity(),
                 req.getPrice(),
@@ -62,10 +89,37 @@ public class StockService implements BuyKoreaStockUseCase {
                 fee,
                 tax,
                 tradeId,
-                tradeAt
+                tradeDateTime
         ));
     }
 
+    private void validateRequest(BuyStockRequest req) {
+        if (req == null) {
+            throw new IllegalArgumentException("요청값이 없습니다.");
+        }
+        if (req.getAccountId() == null) {
+            throw new IllegalArgumentException("계좌 ID는 필수입니다.");
+        }
+        if (req.getStockId() == null) {
+            throw new IllegalArgumentException("종목 ID는 필수입니다.");
+        }
+        if (req.getQuantity() == null || req.getQuantity() <= 0) {
+            throw new IllegalArgumentException("매수 수량은 1 이상이어야 합니다.");
+        }
+        if (req.getPrice() == null || req.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("매수 단가는 0보다 커야 합니다.");
+        }
+        if (req.getFee() != null && req.getFee().compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("수수료는 0 이상이어야 합니다.");
+        }
+        if (req.getTax() != null && req.getTax().compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("세금은 0 이상이어야 합니다.");
+        }
+    }
 
+    private void validateStock(StockItemMaster stock) {
+        if (stock == null) {
+            throw new IllegalArgumentException("존재하지 않는 종목입니다.");
+        }
+    }
 }
-

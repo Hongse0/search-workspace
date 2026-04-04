@@ -46,9 +46,10 @@ public class TradeCommandPersistenceAdapter implements TradeCommandPort {
         return tradeRepository.save(trade).getTradeId();
     }
 
+    @Transactional
     @Override
     public void deleteByAccountId(Long accountId) {
-
+        tradeRepository.deleteByAccount_AccountId(accountId);
     }
 }
 

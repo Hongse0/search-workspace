@@ -9,14 +9,12 @@ import com.sy.side.stock.domain.StockItemMaster;
 import com.sy.side.stock.infrastructure.jpa.AccountPositionRepository;
 import com.sy.side.stock.repository.StockItemMasterRepo;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.LocalDateTime;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-@Service
+@Component
 @RequiredArgsConstructor
 public class AccountPositionCommandPersistenceAdapter implements AccountPositionCommandPort {
 
@@ -27,59 +25,49 @@ public class AccountPositionCommandPersistenceAdapter implements AccountPosition
     @Transactional
     @Override
     public void applyBuy(ApplyBuyCommand cmd) {
-
         Long accountId = cmd.getAccountId();
         Long stockId = cmd.getStockId();
 
-        Optional<AccountPosition> optional = accountPositionRepository.findForUpdate(accountId, stockId);
+        Optional<AccountPosition> optional = accountPositionRepository.findForUpdate(
+                accountId,
+                stockId,
+                cmd.getMarket()
+        );
 
-        BigDecimal buyPrice = cmd.getBuyPrice();
-        Long buyQty = cmd.getBuyQuantity();
+        BigDecimal fee = nvl(cmd.getFee());
+        BigDecimal tax = nvl(cmd.getTax());
 
-        BigDecimal buyCost = buyPrice.multiply(BigDecimal.valueOf(buyQty));
+        BigDecimal buyCostAmount = cmd.getPrice()
+                .multiply(BigDecimal.valueOf(cmd.getQuantity()))
+                .add(fee)
+                .add(tax);
 
         if (optional.isEmpty()) {
             Account accountRef = accountRepository.getReferenceById(accountId);
             StockItemMaster stockRef = stockItemMasterRepo.getReferenceById(stockId);
 
-            AccountPosition created = AccountPosition.builder()
-                    .account(accountRef)
-                    .stock(stockRef)
-                    .market(cmd.getMarket())
-                    .quantity(buyQty)
-                    .avgPrice(buyPrice)
-                    .costAmount(buyCost.setScale(2, RoundingMode.HALF_UP))
-                    .realizedPnl(BigDecimal.ZERO)
-                    .lastTradeId(cmd.getTradeId())
-                    .updatedAt(now())
-                    .build();
+            AccountPosition created = AccountPosition.open(
+                    accountRef,
+                    stockRef,
+                    cmd.getMarket(),
+                    cmd.getQuantity(),
+                    buyCostAmount,
+                    cmd.getTradeId()
+            );
 
             accountPositionRepository.save(created);
             return;
         }
 
-        AccountPosition pos = optional.get();
-
-        Long oldQty = pos.getQuantity();
-        BigDecimal oldCost = pos.getCostAmount();
-
-        Long newQty = oldQty + buyQty;
-        BigDecimal newCost = oldCost.add(buyCost);
-
-        BigDecimal newAvg = newCost
-                .divide(BigDecimal.valueOf(newQty), 4, RoundingMode.HALF_UP);
-
-        pos.applySnapshot(
-                newQty,
-                newAvg,
-                newCost.setScale(2, RoundingMode.HALF_UP),
-                pos.getRealizedPnl(),
+        AccountPosition position = optional.get();
+        position.applyBuy(
+                cmd.getQuantity(),
+                buyCostAmount,
                 cmd.getTradeId()
         );
-
     }
 
-    private LocalDateTime now() {
-        return LocalDateTime.now();
+    private BigDecimal nvl(BigDecimal value) {
+        return value == null ? BigDecimal.ZERO : value;
     }
 }

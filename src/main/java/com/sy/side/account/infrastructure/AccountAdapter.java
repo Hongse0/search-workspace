@@ -4,6 +4,7 @@ import com.sy.side.account.application.port.out.AccountCommandPort;
 import com.sy.side.account.application.port.out.AccountQueryPort;
 import com.sy.side.account.domain.Account;
 import com.sy.side.account.infrastructure.jpa.AccountRepository;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,11 @@ public class AccountAdapter implements AccountCommandPort, AccountQueryPort {
     @Override
     public void delete(Account account) {
         accountRepository.delete(account);
+    }
+
+    @Override
+    public void withdrawCash(Long accountId, BigDecimal amount) {
+
     }
 
     @Override

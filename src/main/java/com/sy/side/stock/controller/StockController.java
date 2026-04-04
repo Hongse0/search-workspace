@@ -15,12 +15,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/v1/stocks")
+@RequestMapping("/v2/stocks")
 public class StockController {
 
     private final StockSyncService stockSyncService;
     private final ElasticSearchService elasticSearchService;
-    private final StockFacade stockFacade;
 
     @PostMapping("/sync/krx")
     public void syncKrx() {
@@ -33,12 +32,5 @@ public class StockController {
     public void syncEs() {
         String basDt = StockUtil.resolveKrxBaseDate(LocalDateTime.now(ZoneId.of("Asia/Seoul")));
         elasticSearchService.syncEs(basDt);
-    }
-
-    @PostMapping("/korea/buy")
-    public String buyStock(@RequestBody BuyStockRequest req){
-
-        stockFacade.buyKorea(req);
-        return "등록 완료";
     }
 }

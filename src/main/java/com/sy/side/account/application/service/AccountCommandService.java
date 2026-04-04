@@ -56,6 +56,7 @@ public class AccountCommandService implements CreateAccountUseCase, DeleteAccoun
         Account account = accountQueryPort.findById(accountId)
                 .orElseThrow(() -> new BizException(AccountErrorImpl.ACCOUNT_NOT_FOUND));
 
+        // 본인 계좌 검증
         account.validateOwner(memberId);
 
         tradeCommandPort.deleteByAccountId(accountId);
