@@ -1,4 +1,4 @@
-package com.sy.side.stock.infrastructure;
+package com.sy.side.trade.infrastructure;
 
 import com.sy.side.account.domain.Account;
 import com.sy.side.trade.domain.Trade;
@@ -48,7 +48,7 @@ public class TradeCommandPersistenceAdapter implements TradeCommandPort {
 
     @Transactional
     @Override
-    public void deleteByAccountId(Long accountId) {
+    public void deleteAllByAccountId(Long accountId) {
         tradeRepository.deleteByAccount_AccountId(accountId);
     }
 }

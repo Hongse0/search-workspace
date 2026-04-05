@@ -67,6 +67,12 @@ public class AccountPositionCommandPersistenceAdapter implements AccountPosition
         );
     }
 
+    @Transactional
+    @Override
+    public void deleteAllByAccountId(Long accountId) {
+        accountPositionRepository.deleteByAccount_AccountId(accountId);
+    }
+
     private BigDecimal nvl(BigDecimal value) {
         return value == null ? BigDecimal.ZERO : value;
     }

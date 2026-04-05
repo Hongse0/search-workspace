@@ -24,4 +24,6 @@ public interface AccountPositionRepository extends JpaRepository<AccountPosition
             @Param("stockId") Long stockId,
             @Param("market") Market market
     );
+
+    void deleteByAccount_AccountId(Long accountId);
 }

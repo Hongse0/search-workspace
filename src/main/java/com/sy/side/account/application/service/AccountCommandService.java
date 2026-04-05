@@ -9,20 +9,24 @@ import com.sy.side.account.dto.request.AccountCreateRequest;
 import com.sy.side.account.dto.response.AccountResponse;
 import com.sy.side.account.error.AccountErrorImpl;
 import com.sy.side.common.exception.BizException;
+import com.sy.side.stock.application.port.out.AccountPositionCommandPort;
 import com.sy.side.trade.application.port.out.TradeCommandPort;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 @Transactional
 public class AccountCommandService implements CreateAccountUseCase, DeleteAccountUseCase {
 
     private final AccountCommandPort accountCommandPort;
     private final AccountQueryPort accountQueryPort;
     private final TradeCommandPort tradeCommandPort;
+    private final AccountPositionCommandPort accountPositionCommandPort;
 
     @Override
     public AccountResponse createAccount(Long memberId, AccountCreateRequest request) {
@@ -51,15 +55,14 @@ public class AccountCommandService implements CreateAccountUseCase, DeleteAccoun
         }
     }
 
-    @Override
+    @Transactional
     public void deleteAccount(Long memberId, Long accountId) {
         Account account = accountQueryPort.findById(accountId)
                 .orElseThrow(() -> new BizException(AccountErrorImpl.ACCOUNT_NOT_FOUND));
 
-        // 본인 계좌 검증
         account.validateOwner(memberId);
-
-        tradeCommandPort.deleteByAccountId(accountId);
+        accountPositionCommandPort.deleteAllByAccountId(accountId);
+        tradeCommandPort.deleteAllByAccountId(accountId);
         accountCommandPort.delete(account);
     }
 }
