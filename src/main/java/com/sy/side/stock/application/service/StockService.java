@@ -43,10 +43,8 @@ public class StockService implements BuyKoreaStockUseCase {
 
         account.validateActive();
 
-        StockItemMaster stock = stockItemMasterQueryPort.findById(req.getStockId())
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 종목입니다."));
-
-        validateStock(stock);
+        StockItemMaster stock = stockItemMasterQueryPort.findBySrtnCd(req.getSymbolCode())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 종목 코드입니다."));
 
         BigDecimal fee = defaultZero(req.getFee());
         BigDecimal tax = defaultZero(req.getTax());
@@ -60,13 +58,13 @@ public class StockService implements BuyKoreaStockUseCase {
         account.validateWithdrawable(buyAmount);
 
         BigDecimal totalAmount = buyAmount.negate();
+        Long stockId = stock.getId();
 
-        // 예수금 차감
         accountCommandPort.withdrawCash(req.getAccountId(), buyAmount);
 
         TradeInsertCommand command = new TradeInsertCommand(
                 req.getAccountId(),
-                req.getStockId(),
+                stockId,
                 Market.KR,
                 TradeSide.BUY,
                 req.getQuantity(),
@@ -82,7 +80,7 @@ public class StockService implements BuyKoreaStockUseCase {
 
         accountPositionCommandPort.applyBuy(new ApplyBuyCommand(
                 req.getAccountId(),
-                req.getStockId(),
+                stockId,
                 Market.KR,
                 req.getQuantity(),
                 req.getPrice(),
@@ -100,8 +98,8 @@ public class StockService implements BuyKoreaStockUseCase {
         if (req.getAccountId() == null) {
             throw new IllegalArgumentException("계좌 ID는 필수입니다.");
         }
-        if (req.getStockId() == null) {
-            throw new IllegalArgumentException("종목 ID는 필수입니다.");
+        if (req.getSymbolCode() == null || req.getSymbolCode().isBlank()) {
+            throw new IllegalArgumentException("주식 코드는 필수입니다.");
         }
         if (req.getQuantity() == null || req.getQuantity() <= 0) {
             throw new IllegalArgumentException("매수 수량은 1 이상이어야 합니다.");
@@ -114,12 +112,6 @@ public class StockService implements BuyKoreaStockUseCase {
         }
         if (req.getTax() != null && req.getTax().compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("세금은 0 이상이어야 합니다.");
-        }
-    }
-
-    private void validateStock(StockItemMaster stock) {
-        if (stock == null) {
-            throw new IllegalArgumentException("존재하지 않는 종목입니다.");
         }
     }
 }

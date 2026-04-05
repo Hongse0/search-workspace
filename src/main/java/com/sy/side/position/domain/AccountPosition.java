@@ -1,6 +1,7 @@
-package com.sy.side.stock.domain;
+package com.sy.side.position.domain;
 
 import com.sy.side.account.domain.Account;
+import com.sy.side.stock.domain.StockItemMaster;
 import com.sy.side.trade.domain.Market;
 import jakarta.persistence.*;
 import java.math.BigDecimal;

@@ -22,4 +22,9 @@ public class StockItemMasterQueryPersistenceAdapter implements StockItemMasterQu
     public Optional<StockItemMaster> findById(Long stockId) {
         return stockItemMasterRepo.findById(stockId);
     }
+
+    @Override
+    public Optional<StockItemMaster> findBySrtnCd(String srtnCd) {
+        return stockItemMasterRepo.findBySrtnCd(srtnCd);
+    }
 }

@@ -2,11 +2,11 @@ package com.sy.side.stock.infrastructure;
 
 import com.sy.side.account.domain.Account;
 import com.sy.side.account.infrastructure.jpa.AccountRepository;
+import com.sy.side.position.infrastructure.jpa.AccountPositionRepository;
 import com.sy.side.stock.application.dto.command.ApplyBuyCommand;
 import com.sy.side.stock.application.port.out.AccountPositionCommandPort;
-import com.sy.side.stock.domain.AccountPosition;
+import com.sy.side.position.domain.AccountPosition;
 import com.sy.side.stock.domain.StockItemMaster;
-import com.sy.side.stock.infrastructure.jpa.AccountPositionRepository;
 import com.sy.side.stock.repository.StockItemMasterRepo;
 import java.math.BigDecimal;
 import java.util.Optional;

@@ -5,6 +5,5 @@ import java.util.List;
 
 public interface GetAccountUseCase {
     List<AccountSelectResponse> findAllAccount(Long memberId);
-
     AccountSelectResponse findMyAccount(Long memberId, Long accountId);
 }
