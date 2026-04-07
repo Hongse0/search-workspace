@@ -7,4 +7,5 @@ public interface AccountCommandPort {
     Account save(Account account);
     void delete(Account account);
     void withdrawCash(Long accountId, BigDecimal amount);
+    void depositCash(Long accountId, BigDecimal sellAmount);
 }

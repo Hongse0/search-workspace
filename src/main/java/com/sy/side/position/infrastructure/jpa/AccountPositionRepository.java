@@ -28,6 +28,17 @@ public interface AccountPositionRepository extends JpaRepository<AccountPosition
     """)
     Long countHoldingByAccountId(@Param("accountId") Long accountId);
 
+    @Query("""
+    select ap
+    from AccountPosition ap
+    where ap.account.accountId = :accountId
+      and ap.stock.id = :stockId
+""")
+    Optional<AccountPosition> findByAccountIdAndStockId(
+            @Param("accountId") Long accountId,
+            @Param("stockId") Long stockId
+    );
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
         select p

@@ -41,6 +41,18 @@ public class AccountAdapter implements AccountCommandPort, AccountQueryPort {
         accountRepository.save(account);
     }
 
+    @Transactional
+    @Override
+    public void depositCash(Long accountId, BigDecimal sellAmount) {
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new BizException(AccountErrorImpl.ACCOUNT_NOT_FOUND));
+
+        account.validateActive();
+        account.deposit(sellAmount);
+
+        accountRepository.save(account);
+    }
+
     @Override
     public boolean existsByMemberIdAndBrokerNameAndAccountNumber(
             Long memberId,

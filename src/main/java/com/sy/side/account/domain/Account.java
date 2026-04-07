@@ -128,4 +128,12 @@ public class Account {
             this.cashBalance = this.cashBalance.setScale(2, RoundingMode.DOWN);
         }
     }
+
+    public void deposit(BigDecimal amount) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("입금 금액은 0보다 커야 합니다.");
+        }
+
+        this.cashBalance = this.cashBalance.add(amount);
+    }
 }

@@ -161,4 +161,29 @@ public class AccountPosition {
         }
         return amount.setScale(2, RoundingMode.HALF_UP);
     }
+
+    public void applySell(Long sellQuantity, Long tradeId) {
+        if (sellQuantity == null || sellQuantity <= 0) {
+            throw new IllegalArgumentException("매도 수량은 1 이상이어야 합니다.");
+        }
+        if (this.quantity < sellQuantity) {
+            throw new IllegalArgumentException("보유 수량보다 많이 매도할 수 없습니다.");
+        }
+
+        BigDecimal avgCost = this.costAmount.divide(
+                BigDecimal.valueOf(this.quantity),
+                10,
+                RoundingMode.HALF_UP
+        );
+
+        BigDecimal reducedCost = avgCost.multiply(BigDecimal.valueOf(sellQuantity));
+
+        this.quantity -= sellQuantity;
+        this.costAmount = this.costAmount.subtract(reducedCost);
+        this.lastTradeId = tradeId;
+
+        if (this.quantity == 0) {
+            this.costAmount = BigDecimal.ZERO;
+        }
+    }
 }
