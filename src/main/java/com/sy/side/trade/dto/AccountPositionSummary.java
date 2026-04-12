@@ -9,6 +9,8 @@ import lombok.Getter;
 public class AccountPositionSummary {
     private Long accountId;
     private Long stockId;
-    private Integer quantity;
+    private Long quantity;
     private BigDecimal avgPrice;
+    private String symbolCode;
+    private String symbolName;
 }

@@ -2,12 +2,14 @@ package com.sy.side.account.controller;
 
 import com.sy.side.account.application.port.in.CreateAccountUseCase;
 import com.sy.side.account.application.port.in.DeleteAccountUseCase;
+import com.sy.side.account.application.port.in.GetAccountHoldingsUseCase;
 import com.sy.side.account.application.port.in.GetAccountUseCase;
 import com.sy.side.account.dto.request.AccountCreateRequest;
 import com.sy.side.account.dto.response.AccountResponse;
 import com.sy.side.account.dto.response.AccountSelectResponse;
 import com.sy.side.common.annotation.UserParam;
 import com.sy.side.common.entity.UserSession;
+import com.sy.side.trade.dto.AccountPositionSummary;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,7 @@ public class AccountController {
     private final CreateAccountUseCase createAccountUseCase;
     private final GetAccountUseCase getAccountUseCase;
     private final DeleteAccountUseCase deleteAccountUseCase;
+    private final GetAccountHoldingsUseCase getAccountHoldingsUseCase;
 
     /** 계좌 등록 */
     @PostMapping("/register")
@@ -41,6 +44,16 @@ public class AccountController {
     public List<AccountSelectResponse> selectAllAccount(@UserParam UserSession userSession) {
         Long memberId = userSession.getMemberSession().getMemberId();
         return getAccountUseCase.findAllAccount(memberId);
+    }
+
+    /** 보유 주식 조회 */
+    @GetMapping("/{accountId}/holdings")
+    public List<AccountPositionSummary> getHoldings(
+            @UserParam UserSession userSession,
+            @PathVariable Long accountId
+    ) {
+        Long memberId = userSession.getMemberSession().getMemberId();
+        return getAccountHoldingsUseCase.getHoldings(memberId, accountId);
     }
 
     /** 계좌 전체 삭제 */

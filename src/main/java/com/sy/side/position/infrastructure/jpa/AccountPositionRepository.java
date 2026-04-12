@@ -4,6 +4,7 @@ import com.sy.side.position.domain.AccountPosition;
 import com.sy.side.trade.domain.Market;
 import jakarta.persistence.LockModeType;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -29,15 +30,23 @@ public interface AccountPositionRepository extends JpaRepository<AccountPosition
     Long countHoldingByAccountId(@Param("accountId") Long accountId);
 
     @Query("""
-    select ap
-    from AccountPosition ap
-    where ap.account.accountId = :accountId
-      and ap.stock.id = :stockId
-""")
+        select ap
+        from AccountPosition ap
+        where ap.account.accountId = :accountId
+          and ap.stock.id = :stockId
+    """)
     Optional<AccountPosition> findByAccountIdAndStockId(
             @Param("accountId") Long accountId,
             @Param("stockId") Long stockId
     );
+
+    @Query("""
+        select ap
+        from AccountPosition ap
+        where ap.account.accountId = :accountId
+          and ap.quantity > 0
+    """)
+    List<AccountPosition> findAllByAccountId(@Param("accountId") Long accountId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""

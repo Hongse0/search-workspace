@@ -15,7 +15,7 @@ public class StockItemEsIndexService {
 
     private final ElasticsearchClient esClient;
 
-    private static final String INDEX = "stock_item";
+    private static final String INDEX = "stock_item_v1";
 
     public int bulkUpsertMin(List<? extends StockItemMinSource> items) throws IOException {
         if (items == null || items.isEmpty()) return 0;
