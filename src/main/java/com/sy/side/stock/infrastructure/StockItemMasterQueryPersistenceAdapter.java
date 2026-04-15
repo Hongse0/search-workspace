@@ -3,6 +3,7 @@ package com.sy.side.stock.infrastructure;
 import com.sy.side.stock.application.port.out.StockItemMasterQueryPort;
 import com.sy.side.stock.domain.StockItemMaster;
 import com.sy.side.stock.repository.StockItemMasterRepo;
+import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -26,5 +27,11 @@ public class StockItemMasterQueryPersistenceAdapter implements StockItemMasterQu
     @Override
     public Optional<StockItemMaster> findBySrtnCd(String srtnCd) {
         return stockItemMasterRepo.findBySrtnCd(srtnCd);
+    }
+
+
+    @Override
+    public List<StockItemMaster> findAllByIds(List<Long> stockIds) {
+        return stockItemMasterRepo.findAllById(stockIds);
     }
 }

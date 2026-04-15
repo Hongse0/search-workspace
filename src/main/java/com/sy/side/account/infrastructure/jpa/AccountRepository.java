@@ -16,4 +16,6 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     List<Account> findAllByMemberIdOrderByCreatedAtDesc(Long memberId);
 
     Optional<Account> findByAccountIdAndMemberId(Long accountId, Long memberId);
+
+    Optional<Account> findFirstByMemberIdOrderByAccountIdAsc(Long memberId);
 }

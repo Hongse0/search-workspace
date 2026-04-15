@@ -23,9 +23,10 @@ public class DashboardController {
 //    ) {
 //        return getDashboardHoldingsUseCase.getHoldings(memberId);
 //    }
-@GetMapping("/holdings")
-public DashboardHoldingsResponse getHoldings() {
-    Long memberId = 2L; // 👈 테스트용
-    return getDashboardHoldingsUseCase.getHoldings(memberId);
-}
+
+    @GetMapping("/holdings")
+    public DashboardHoldingsResponse getHoldings() {
+        Long memberId = 3L;
+        return getDashboardHoldingsUseCase.getHoldings(memberId);
+    }
 }

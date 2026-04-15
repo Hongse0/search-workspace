@@ -1,19 +1,23 @@
 package com.sy.side.dashboard.application.service;
 
 import com.sy.side.dashboard.application.port.in.GetDashboardHoldingsUseCase;
-import com.sy.side.dashboard.application.port.out.DashboardHoldingQueryPort;
-import com.sy.side.dashboard.dto.DashboardHoldingRow;
-import com.sy.side.dashboard.dto.response.DashboardHoldingAccountItemResponse;
-import com.sy.side.dashboard.dto.response.DashboardHoldingItemResponse;
+import com.sy.side.dashboard.application.port.out.DashboardAccountQueryPort;
+import com.sy.side.dashboard.application.port.out.DashboardPositionQueryPort;
+import com.sy.side.dashboard.application.port.out.DashboardStockPriceQueryPort;
+import com.sy.side.dashboard.application.port.out.DashboardTradeQueryPort;
 import com.sy.side.dashboard.dto.response.DashboardHoldingsResponse;
-import com.sy.side.dashboard.dto.response.DashboardSummaryResponse;
+import com.sy.side.stock.application.port.out.StockItemMasterQueryPort;
+import com.sy.side.stock.domain.StockItemMaster;
+import com.sy.side.trade.dto.AccountPositionSummary;
+import com.sy.side.trade.dto.RecentTradeSummary;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
+import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,165 +27,145 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class GetDashboardHoldingsService implements GetDashboardHoldingsUseCase {
 
-    private final DashboardHoldingQueryPort dashboardHoldingQueryPort;
+    private static final BigDecimal HUNDRED = BigDecimal.valueOf(100);
+    private static final int RECENT_TRADE_LIMIT = 5;
+
+    private final DashboardAccountQueryPort dashboardAccountQueryPort;
+    private final DashboardPositionQueryPort dashboardPositionQueryPort;
+    private final DashboardStockPriceQueryPort dashboardStockPriceQueryPort;
+    private final DashboardTradeQueryPort dashboardTradeQueryPort;
+    private final StockItemMasterQueryPort stockItemMasterQueryPort;
 
     @Override
     public DashboardHoldingsResponse getHoldings(Long memberId) {
-        List<DashboardHoldingRow> rows = dashboardHoldingQueryPort.findHoldingsByMemberId(memberId);
+        Long accountId = dashboardAccountQueryPort.findPrimaryAccountIdByMemberId(memberId)
+                .orElse(null);
 
-        Map<Long, HoldingAggregation> aggregationMap = new LinkedHashMap<>();
-
-        for (DashboardHoldingRow row : rows) {
-            HoldingAggregation agg = aggregationMap.computeIfAbsent(
-                    row.getStockId(),
-                    stockId -> HoldingAggregation.from(row)
-            );
-
-            if (!agg.isInitialized()) {
-                agg.initialize(row);
-            } else {
-                agg.add(row);
-            }
+        if (accountId == null) {
+            return DashboardHoldingsResponse.empty();
         }
 
-        List<DashboardHoldingItemResponse> holdings = new ArrayList<>();
-        BigDecimal totalEvaluationAmount = BigDecimal.ZERO;
-        BigDecimal totalBuyAmount = BigDecimal.ZERO;
+        List<AccountPositionSummary> positions = dashboardPositionQueryPort.findAllByAccountId(accountId);
+        List<RecentTradeSummary> recentTrades = dashboardTradeQueryPort.findRecentByAccountId(accountId, RECENT_TRADE_LIMIT);
 
-        for (HoldingAggregation agg : aggregationMap.values()) {
-            BigDecimal averageBuyPrice = divide(agg.totalBuyAmount, agg.totalQuantity);
-            BigDecimal evaluationAmount = multiply(agg.currentPrice, agg.totalQuantity);
-            BigDecimal profitLoss = evaluationAmount.subtract(agg.totalBuyAmount);
-            BigDecimal profitRate = calculateRate(profitLoss, agg.totalBuyAmount);
-
-            totalEvaluationAmount = totalEvaluationAmount.add(evaluationAmount);
-            totalBuyAmount = totalBuyAmount.add(agg.totalBuyAmount);
-
-            holdings.add(DashboardHoldingItemResponse.builder()
-                    .stockId(agg.stockId)
-                    .stockCode(agg.stockCode)
-                    .stockName(agg.stockName)
-                    .market(agg.market)
-                    .totalQuantity(agg.totalQuantity)
-                    .totalBuyAmount(agg.totalBuyAmount)
-                    .averageBuyPrice(averageBuyPrice)
-                    .currentPrice(agg.currentPrice)
-                    .evaluationAmount(evaluationAmount)
-                    .profitLoss(profitLoss)
-                    .profitRate(profitRate)
-                    .portfolioWeight(BigDecimal.ZERO)
-                    .accounts(agg.accounts)
-                    .build());
+        if (positions.isEmpty()) {
+            return DashboardHoldingsResponse.builder()
+                    .summary(DashboardHoldingsResponse.Summary.builder()
+                            .totalBuyAmount(BigDecimal.ZERO)
+                            .totalEvaluationAmount(BigDecimal.ZERO)
+                            .totalProfitLoss(BigDecimal.ZERO)
+                            .totalProfitRate(BigDecimal.ZERO)
+                            .holdingCount(0)
+                            .build())
+                    .holdings(List.of())
+                    .recentTrades(toRecentTradeItems(recentTrades))
+                    .build();
         }
+
+        Set<Long> stockIds = positions.stream()
+                .map(AccountPositionSummary::getStockId)
+                .collect(Collectors.toSet());
+
+        Map<Long, StockItemMaster> stockMap = stockItemMasterQueryPort.findAllByIds(List.copyOf(stockIds))
+                .stream()
+                .collect(Collectors.toMap(StockItemMaster::getId, item -> item));
+
+        Map<Long, BigDecimal> currentPriceMap = dashboardStockPriceQueryPort.findLatestPriceMap(stockIds);
+
+        List<DashboardHoldingsResponse.HoldingItem> holdings = positions.stream()
+                .map(position -> toHoldingItem(position, stockMap, currentPriceMap))
+                .sorted(Comparator.comparing(DashboardHoldingsResponse.HoldingItem::getEvaluationAmount).reversed())
+                .toList();
+
+        BigDecimal totalBuyAmount = sum(holdings.stream()
+                .map(DashboardHoldingsResponse.HoldingItem::getBuyAmount)
+                .toList());
+
+        BigDecimal totalEvaluationAmount = sum(holdings.stream()
+                .map(DashboardHoldingsResponse.HoldingItem::getEvaluationAmount)
+                .toList());
 
         BigDecimal totalProfitLoss = totalEvaluationAmount.subtract(totalBuyAmount);
         BigDecimal totalProfitRate = calculateRate(totalProfitLoss, totalBuyAmount);
 
-        final BigDecimal finalTotalEvaluationAmount = totalEvaluationAmount;
-
-        List<DashboardHoldingItemResponse> weightedHoldings = holdings.stream()
-                .map(item -> DashboardHoldingItemResponse.builder()
-                        .stockId(item.getStockId())
-                        .stockCode(item.getStockCode())
-                        .stockName(item.getStockName())
-                        .market(item.getMarket())
-                        .totalQuantity(item.getTotalQuantity())
-                        .totalBuyAmount(item.getTotalBuyAmount())
-                        .averageBuyPrice(item.getAverageBuyPrice())
-                        .currentPrice(item.getCurrentPrice())
-                        .evaluationAmount(item.getEvaluationAmount())
-                        .profitLoss(item.getProfitLoss())
-                        .profitRate(item.getProfitRate())
-                        .portfolioWeight(calculateRate(item.getEvaluationAmount(), finalTotalEvaluationAmount))
-                        .accounts(item.getAccounts())
-                        .build())
-                .sorted(Comparator.comparing(DashboardHoldingItemResponse::getEvaluationAmount).reversed())
-                .toList();
-
         return DashboardHoldingsResponse.builder()
-                .summary(DashboardSummaryResponse.builder()
+                .summary(DashboardHoldingsResponse.Summary.builder()
                         .totalBuyAmount(totalBuyAmount)
                         .totalEvaluationAmount(totalEvaluationAmount)
                         .totalProfitLoss(totalProfitLoss)
                         .totalProfitRate(totalProfitRate)
+                        .holdingCount(holdings.size())
                         .build())
-                .holdings(weightedHoldings)
+                .holdings(holdings)
+                .recentTrades(toRecentTradeItems(recentTrades))
                 .build();
     }
 
-    private BigDecimal divide(BigDecimal numerator, BigDecimal denominator) {
-        if (denominator == null || denominator.compareTo(BigDecimal.ZERO) == 0) {
-            return BigDecimal.ZERO;
-        }
-        return numerator.divide(denominator, 2, RoundingMode.HALF_UP);
+    private DashboardHoldingsResponse.HoldingItem toHoldingItem(
+            AccountPositionSummary position,
+            Map<Long, StockItemMaster> stockMap,
+            Map<Long, BigDecimal> currentPriceMap
+    ) {
+        StockItemMaster stock = stockMap.get(position.getStockId());
+
+        BigDecimal avgBuyPrice = nullSafe(position.getAvgPrice());
+        BigDecimal currentPrice = nullSafe(currentPriceMap.get(position.getStockId()));
+        BigDecimal quantity = BigDecimal.valueOf(position.getQuantity());
+
+        BigDecimal buyAmount = avgBuyPrice.multiply(quantity);
+        BigDecimal evaluationAmount = currentPrice.multiply(quantity);
+        BigDecimal profitLoss = evaluationAmount.subtract(buyAmount);
+        BigDecimal profitRate = calculateRate(profitLoss, buyAmount);
+
+        return DashboardHoldingsResponse.HoldingItem.builder()
+                .stockId(position.getStockId())
+                .stockName(stock != null ? stock.getItmsNm() : "-")
+                .stockCode(stock != null ? stock.getSrtnCd() : "-")
+                .market(stock != null ? stock.getMrktCtg() : "-")
+                .quantity(position.getQuantity())
+                .avgBuyPrice(avgBuyPrice)
+                .currentPrice(currentPrice)
+                .buyAmount(buyAmount)
+                .evaluationAmount(evaluationAmount)
+                .profitLoss(profitLoss)
+                .profitRate(profitRate)
+                .build();
     }
 
-    private BigDecimal multiply(BigDecimal price, BigDecimal quantity) {
-        if (price == null || quantity == null) {
-            return BigDecimal.ZERO;
-        }
-        return price.multiply(quantity);
+    private List<DashboardHoldingsResponse.RecentTradeItem> toRecentTradeItems(List<RecentTradeSummary> recentTrades) {
+        DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+
+        return recentTrades.stream()
+                .map(trade -> DashboardHoldingsResponse.RecentTradeItem.builder()
+                        .tradeId(trade.getTradeId())
+                        .stockId(trade.getStockId())
+                        .stockName(trade.getStockName())
+                        .stockCode(trade.getStockCode())
+                        .tradeType(trade.getTradeType())
+                        .quantity(trade.getQuantity())
+                        .price(trade.getPrice())
+                        .totalAmount(trade.getPrice().multiply(BigDecimal.valueOf(trade.getQuantity())))
+                        .tradedAt(trade.getTradedAt().format(formatter))
+                        .build())
+                .toList();
     }
 
-    private BigDecimal calculateRate(BigDecimal value, BigDecimal base) {
-        if (base == null || base.compareTo(BigDecimal.ZERO) == 0) {
+    private BigDecimal calculateRate(BigDecimal numerator, BigDecimal denominator) {
+        if (denominator == null || denominator.compareTo(BigDecimal.ZERO) <= 0) {
             return BigDecimal.ZERO;
         }
-        return value.multiply(BigDecimal.valueOf(100))
-                .divide(base, 2, RoundingMode.HALF_UP);
+
+        return numerator.multiply(HUNDRED)
+                .divide(denominator, 2, RoundingMode.HALF_UP);
     }
 
-    private static class HoldingAggregation {
-        private boolean initialized;
-        private Long stockId;
-        private String stockCode;
-        private String stockName;
-        private String market;
-        private BigDecimal currentPrice = BigDecimal.ZERO;
-        private BigDecimal totalQuantity = BigDecimal.ZERO;
-        private BigDecimal totalBuyAmount = BigDecimal.ZERO;
-        private final List<DashboardHoldingAccountItemResponse> accounts = new ArrayList<>();
+    private BigDecimal sum(List<BigDecimal> values) {
+        return values.stream()
+                .map(this::nullSafe)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
 
-        static HoldingAggregation from(DashboardHoldingRow row) {
-            HoldingAggregation agg = new HoldingAggregation();
-            agg.initialize(row);
-            return agg;
-        }
-
-        boolean isInitialized() {
-            return initialized;
-        }
-
-        void initialize(DashboardHoldingRow row) {
-            this.initialized = true;
-            this.stockId = row.getStockId();
-            this.stockCode = row.getStockCode();
-            this.stockName = row.getStockName();
-            this.market = row.getMarket();
-            this.currentPrice = defaultZero(row.getCurrentPrice());
-            this.totalQuantity = defaultZero(row.getQuantity());
-            this.totalBuyAmount = defaultZero(row.getTotalBuyAmount());
-            this.accounts.add(toAccountItem(row));
-        }
-
-        void add(DashboardHoldingRow row) {
-            this.totalQuantity = this.totalQuantity.add(defaultZero(row.getQuantity()));
-            this.totalBuyAmount = this.totalBuyAmount.add(defaultZero(row.getTotalBuyAmount()));
-            this.accounts.add(toAccountItem(row));
-        }
-
-        private DashboardHoldingAccountItemResponse toAccountItem(DashboardHoldingRow row) {
-            return DashboardHoldingAccountItemResponse.builder()
-                    .accountId(row.getAccountId())
-                    .brokerName(row.getBrokerName())
-                    .quantity(defaultZero(row.getQuantity()))
-                    .averageBuyPrice(defaultZero(row.getAverageBuyPrice()))
-                    .buyAmount(defaultZero(row.getTotalBuyAmount()))
-                    .build();
-        }
-
-        private BigDecimal defaultZero(BigDecimal value) {
-            return value == null ? BigDecimal.ZERO : value;
-        }
+    private BigDecimal nullSafe(BigDecimal value) {
+        return value == null ? BigDecimal.ZERO : value;
     }
 }
