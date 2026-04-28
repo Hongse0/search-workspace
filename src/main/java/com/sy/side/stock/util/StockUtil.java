@@ -38,4 +38,24 @@ public final class StockUtil {
     public static BigDecimal defaultZero(BigDecimal value) {
         return value != null ? value : BigDecimal.ZERO;
     }
+
+    public static String resolveKrxPriceBaseDate(LocalDateTime now) {
+        LocalDate date = now.toLocalDate();
+
+        switch (date.getDayOfWeek()) {
+            case MONDAY:
+                date = date.minusDays(3); // 직전 금요일
+                break;
+            case SUNDAY:
+                date = date.minusDays(2); // 금요일
+                break;
+            case SATURDAY:
+                date = date.minusDays(1); // 금요일
+                break;
+            default:
+                date = date.minusDays(1); // 전일
+        }
+
+        return date.format(DateTimeFormatter.BASIC_ISO_DATE);
+    }
 }

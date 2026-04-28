@@ -14,7 +14,14 @@ public class DashboardTradeQueryPersistenceAdapter implements DashboardTradeQuer
     private final TradeRepository tradeRepository;
 
     @Override
-    public List<RecentTradeSummary> findRecentByAccountId(Long accountId, int limit) {
-        return tradeRepository.findRecentTradeSummaries(accountId, limit);
+    public List<RecentTradeSummary> findRecentByAccountIds(List<Long> accountIds, int limit) {
+        if (accountIds == null || accountIds.isEmpty()) {
+            return List.of();
+        }
+
+        return tradeRepository.findRecentTradeSummariesByAccountIds(
+                accountIds,
+                org.springframework.data.domain.PageRequest.of(0, limit)
+        );
     }
 }

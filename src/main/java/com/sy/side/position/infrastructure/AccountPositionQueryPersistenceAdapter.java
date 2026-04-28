@@ -41,4 +41,23 @@ public class AccountPositionQueryPersistenceAdapter implements AccountPositionQu
                 ))
                 .toList();
     }
+
+    @Override
+    public List<AccountPositionSummary> findAllByAccountIds(List<Long> accountIds) {
+        if (accountIds == null || accountIds.isEmpty()) {
+            return List.of();
+        }
+
+        return accountPositionRepository.findAllByAccount_AccountIdIn(accountIds)
+                .stream()
+                .map(position -> new AccountPositionSummary(
+                        position.getAccount().getAccountId(),
+                        position.getStock().getId(),
+                        position.getQuantity(),
+                        position.getAvgPrice(),
+                        position.getStock().getSrtnCd(),
+                        position.getStock().getItmsNm()
+                ))
+                .toList();
+    }
 }

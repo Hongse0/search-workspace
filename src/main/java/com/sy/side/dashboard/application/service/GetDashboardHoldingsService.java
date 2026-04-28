@@ -38,15 +38,14 @@ public class GetDashboardHoldingsService implements GetDashboardHoldingsUseCase 
 
     @Override
     public DashboardHoldingsResponse getHoldings(Long memberId) {
-        Long accountId = dashboardAccountQueryPort.findPrimaryAccountIdByMemberId(memberId)
-                .orElse(null);
+        List<Long> accountIds = dashboardAccountQueryPort.findAllAccountIdsByMemberId(memberId);
 
-        if (accountId == null) {
+        if (accountIds.isEmpty()) {
             return DashboardHoldingsResponse.empty();
         }
 
-        List<AccountPositionSummary> positions = dashboardPositionQueryPort.findAllByAccountId(accountId);
-        List<RecentTradeSummary> recentTrades = dashboardTradeQueryPort.findRecentByAccountId(accountId, RECENT_TRADE_LIMIT);
+        List<AccountPositionSummary> positions = dashboardPositionQueryPort.findAllByAccountIds(accountIds);
+        List<RecentTradeSummary> recentTrades = dashboardTradeQueryPort.findRecentByAccountIds(accountIds, RECENT_TRADE_LIMIT);
 
         if (positions.isEmpty()) {
             return DashboardHoldingsResponse.builder()
@@ -64,6 +63,7 @@ public class GetDashboardHoldingsService implements GetDashboardHoldingsUseCase 
 
         Set<Long> stockIds = positions.stream()
                 .map(AccountPositionSummary::getStockId)
+                .filter(java.util.Objects::nonNull)
                 .collect(Collectors.toSet());
 
         Map<Long, StockItemMaster> stockMap = stockItemMasterQueryPort.findAllByIds(List.copyOf(stockIds))
@@ -72,14 +72,21 @@ public class GetDashboardHoldingsService implements GetDashboardHoldingsUseCase 
 
         Map<Long, BigDecimal> currentPriceMap = dashboardStockPriceQueryPort.findLatestPriceMap(stockIds);
 
-        List<DashboardHoldingsResponse.HoldingItem> holdings = positions.stream()
-                .map(position -> toHoldingItem(position, stockMap, currentPriceMap))
+        Map<Long, List<AccountPositionSummary>> groupedByStock = positions.stream()
+                .collect(Collectors.groupingBy(AccountPositionSummary::getStockId));
+
+        List<DashboardHoldingsResponse.HoldingItem> holdings = groupedByStock.entrySet().stream()
+                .map(entry -> toMergedHoldingItem(entry.getKey(), entry.getValue(), stockMap, currentPriceMap))
                 .sorted(Comparator.comparing(DashboardHoldingsResponse.HoldingItem::getEvaluationAmount).reversed())
                 .toList();
 
-        BigDecimal totalBuyAmount = sum(holdings.stream()
-                .map(DashboardHoldingsResponse.HoldingItem::getBuyAmount)
-                .toList());
+        BigDecimal totalBuyAmount = positions.stream()
+                .map(position -> {
+                    long quantity = position.getQuantity() == null ? 0L : position.getQuantity();
+                    return nullSafe(position.getAvgPrice())
+                            .multiply(BigDecimal.valueOf(quantity));
+                })
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal totalEvaluationAmount = sum(holdings.stream()
                 .map(DashboardHoldingsResponse.HoldingItem::getEvaluationAmount)
@@ -101,31 +108,43 @@ public class GetDashboardHoldingsService implements GetDashboardHoldingsUseCase 
                 .build();
     }
 
-    private DashboardHoldingsResponse.HoldingItem toHoldingItem(
-            AccountPositionSummary position,
+    private DashboardHoldingsResponse.HoldingItem toMergedHoldingItem(
+            Long stockId,
+            List<AccountPositionSummary> positions,
             Map<Long, StockItemMaster> stockMap,
             Map<Long, BigDecimal> currentPriceMap
     ) {
-        StockItemMaster stock = stockMap.get(position.getStockId());
+        StockItemMaster stock = stockMap.get(stockId);
 
-        BigDecimal avgBuyPrice = nullSafe(position.getAvgPrice());
-        BigDecimal currentPrice = nullSafe(currentPriceMap.get(position.getStockId()));
-        BigDecimal quantity = BigDecimal.valueOf(position.getQuantity());
+        long totalQuantity = positions.stream()
+                .map(AccountPositionSummary::getQuantity)
+                .filter(java.util.Objects::nonNull)
+                .mapToLong(Long::longValue)
+                .sum();
 
-        BigDecimal buyAmount = avgBuyPrice.multiply(quantity);
-        BigDecimal evaluationAmount = currentPrice.multiply(quantity);
-        BigDecimal profitLoss = evaluationAmount.subtract(buyAmount);
-        BigDecimal profitRate = calculateRate(profitLoss, buyAmount);
+        BigDecimal totalBuyAmount = positions.stream()
+                .map(position -> nullSafe(position.getAvgPrice())
+                        .multiply(BigDecimal.valueOf(position.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal avgBuyPrice = totalQuantity > 0
+                ? totalBuyAmount.divide(BigDecimal.valueOf(totalQuantity), 2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+
+        BigDecimal currentPrice = nullSafe(currentPriceMap.get(stockId));
+        BigDecimal evaluationAmount = currentPrice.multiply(BigDecimal.valueOf(totalQuantity));
+        BigDecimal profitLoss = evaluationAmount.subtract(totalBuyAmount);
+        BigDecimal profitRate = calculateRate(profitLoss, totalBuyAmount);
 
         return DashboardHoldingsResponse.HoldingItem.builder()
-                .stockId(position.getStockId())
+                .stockId(stockId)
                 .stockName(stock != null ? stock.getItmsNm() : "-")
                 .stockCode(stock != null ? stock.getSrtnCd() : "-")
                 .market(stock != null ? stock.getMrktCtg() : "-")
-                .quantity(position.getQuantity())
+                .quantity(totalQuantity)
                 .avgBuyPrice(avgBuyPrice)
                 .currentPrice(currentPrice)
-                .buyAmount(buyAmount)
+                .buyAmount(totalBuyAmount)
                 .evaluationAmount(evaluationAmount)
                 .profitLoss(profitLoss)
                 .profitRate(profitRate)
@@ -144,7 +163,10 @@ public class GetDashboardHoldingsService implements GetDashboardHoldingsUseCase 
                         .tradeType(trade.getTradeType())
                         .quantity(trade.getQuantity())
                         .price(trade.getPrice())
-                        .totalAmount(trade.getPrice().multiply(BigDecimal.valueOf(trade.getQuantity())))
+                        .totalAmount(nullSafe(trade.getPrice()).multiply(
+                                BigDecimal.valueOf(trade.getQuantity() == null ? 0L : trade.getQuantity())
+                        ))
+                        .tradedAt(trade.getTradedAt() != null ? trade.getTradedAt().format(formatter) : null)
                         .tradedAt(trade.getTradedAt().format(formatter))
                         .build())
                 .toList();

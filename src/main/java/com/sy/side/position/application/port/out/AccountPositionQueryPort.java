@@ -7,4 +7,6 @@ import java.util.Optional;
 public interface AccountPositionQueryPort {
     Optional<AccountPositionSummary> findByAccountIdAndStockId(Long accountId, Long stockId);
     List<AccountPositionSummary> findAllByAccountId(Long accountId);
+
+    List<AccountPositionSummary> findAllByAccountIds(List<Long> accountIds);
 }

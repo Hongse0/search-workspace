@@ -1,15 +1,12 @@
 package com.sy.side.stock.controller;
 
-import com.sy.side.stock.dto.request.BuyStockRequest;
-import com.sy.side.stock.application.facade.StockFacade;
-import com.sy.side.stock.service.ElasticSearchService;
-import com.sy.side.stock.service.StockSyncService;
+import com.sy.side.stock.application.port.in.SyncStockMasterUseCase;
+import com.sy.side.stock.application.port.in.SyncStockSearchIndexUseCase;
 import com.sy.side.stock.util.StockUtil;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -18,19 +15,24 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/v2/stocks")
 public class StockController {
 
-    private final StockSyncService stockSyncService;
-    private final ElasticSearchService elasticSearchService;
+    private final SyncStockMasterUseCase syncStockMasterUseCase;
+    private final SyncStockSearchIndexUseCase syncStockSearchIndexUseCase;
 
     @PostMapping("/sync/krx")
-    public void syncKrx() {
-        String basDt = StockUtil.resolveKrxBaseDate(LocalDateTime.now(ZoneId.of("Asia/Seoul")));
-        stockSyncService.syncAll(basDt);
+    public SyncStockMasterUseCase.SyncStockMasterResult syncKrx() {
+        String basDt = StockUtil.resolveKrxBaseDate(
+                LocalDateTime.now(ZoneId.of("Asia/Seoul"))
+        );
+
+        return syncStockMasterUseCase.sync(basDt);
     }
 
-    /** es 서버에 데이터 적재 */
     @PostMapping("/sync/es")
-    public void syncEs() {
-        String basDt = StockUtil.resolveKrxBaseDate(LocalDateTime.now(ZoneId.of("Asia/Seoul")));
-        elasticSearchService.syncEs(basDt);
+    public SyncStockSearchIndexUseCase.SyncStockSearchIndexResult syncEs() {
+        String basDt = StockUtil.resolveKrxBaseDate(
+                LocalDateTime.now(ZoneId.of("Asia/Seoul"))
+        );
+
+        return syncStockSearchIndexUseCase.sync(basDt);
     }
 }

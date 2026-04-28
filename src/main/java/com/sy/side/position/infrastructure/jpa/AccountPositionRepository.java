@@ -63,4 +63,6 @@ public interface AccountPositionRepository extends JpaRepository<AccountPosition
     );
 
     void deleteByAccount_AccountId(Long accountId);
+
+    List<AccountPosition> findAllByAccount_AccountIdIn(List<Long> accountIds);
 }

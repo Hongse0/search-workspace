@@ -2,6 +2,7 @@ package com.sy.side.dashboard.infrastructure;
 
 import com.sy.side.account.infrastructure.jpa.AccountRepository;
 import com.sy.side.dashboard.application.port.out.DashboardAccountQueryPort;
+import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -13,8 +14,10 @@ public class DashboardAccountQueryPersistenceAdapter implements DashboardAccount
     private final AccountRepository accountRepository;
 
     @Override
-    public Optional<Long> findPrimaryAccountIdByMemberId(Long memberId) {
-        return accountRepository.findFirstByMemberIdOrderByAccountIdAsc(memberId)
-                .map(account -> account.getAccountId());
+    public List<Long> findAllAccountIdsByMemberId(Long memberId) {
+        return accountRepository.findAllByMemberIdOrderByAccountIdAsc(memberId)
+                .stream()
+                .map(account -> account.getAccountId())
+                .toList();
     }
 }

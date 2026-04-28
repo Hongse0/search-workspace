@@ -35,6 +35,27 @@ public interface TradeRepository extends JpaRepository<Trade, Long> {
     );
 
     default List<RecentTradeSummary> findRecentTradeSummaries(Long accountId, int limit) {
-        return findRecentTradeSummaries(accountId, PageRequest.of(0, limit));
+        return null;
     }
+
+    @Query("""
+    select new com.sy.side.trade.dto.RecentTradeSummary(
+        t.tradeId,
+        s.id,
+        coalesce(s.itmsNm, t.symbol),
+        coalesce(s.srtnCd, t.symbol),
+        cast(t.side as string),
+        t.quantity,
+        t.price,
+        t.tradeDateTime
+    )
+    from Trade t
+    left join t.stock s
+    where t.account.accountId in :accountIds
+    order by t.tradeDateTime desc
+""")
+    List<RecentTradeSummary> findRecentTradeSummariesByAccountIds(
+            @Param("accountIds") List<Long> accountIds,
+            Pageable pageable
+    );
 }

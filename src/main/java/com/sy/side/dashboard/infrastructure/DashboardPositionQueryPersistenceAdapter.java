@@ -14,7 +14,10 @@ public class DashboardPositionQueryPersistenceAdapter implements DashboardPositi
     private final AccountPositionQueryPort accountPositionQueryPort;
 
     @Override
-    public List<AccountPositionSummary> findAllByAccountId(Long accountId) {
-        return accountPositionQueryPort.findAllByAccountId(accountId);
+    public List<AccountPositionSummary> findAllByAccountIds(List<Long> accountIds) {
+        if (accountIds == null || accountIds.isEmpty()) {
+            return List.of();
+        }
+        return accountPositionQueryPort.findAllByAccountIds(accountIds);
     }
 }

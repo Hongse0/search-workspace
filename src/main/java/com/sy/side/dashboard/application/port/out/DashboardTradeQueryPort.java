@@ -4,5 +4,5 @@ import com.sy.side.trade.dto.RecentTradeSummary;
 import java.util.List;
 
 public interface DashboardTradeQueryPort {
-    List<RecentTradeSummary> findRecentByAccountId(Long accountId, int limit);
+    List<RecentTradeSummary> findRecentByAccountIds(List<Long> accountIds, int recentTradeLimit);
 }

@@ -4,5 +4,5 @@ import com.sy.side.trade.dto.AccountPositionSummary;
 import java.util.List;
 
 public interface DashboardPositionQueryPort {
-    List<AccountPositionSummary> findAllByAccountId(Long accountId);
+    List<AccountPositionSummary> findAllByAccountIds(List<Long> accountIds);
 }
