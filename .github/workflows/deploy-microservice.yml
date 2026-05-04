@@ -26,8 +26,18 @@ jobs:
             git fetch origin master
             git reset --hard origin/master
 
-            echo "===== Rebuild and restart microservice only ====="
+            echo "===== Build microservice jar ====="
+            chmod +x ./gradlew
+            ./gradlew clean build -x test
+
+            echo "===== Check built jar ====="
+            ls -al build/libs
+
+            echo "===== Remove old microservice container ====="
             cd /home/ubuntu/side-project
+            docker rm -f side-microservice || true
+
+            echo "===== Rebuild and restart microservice only ====="
             docker-compose up -d --no-deps --build microservice
 
             echo "===== Clean dangling images ====="
