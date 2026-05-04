@@ -80,4 +80,10 @@ public class AccountAdapter implements AccountCommandPort, AccountQueryPort {
     public Optional<Account> findByAccountIdAndMemberId(Long accountId, Long memberId) {
         return accountRepository.findByAccountIdAndMemberId(accountId, memberId);
     }
+
+    @Override
+    public Account getActiveAccountForUpdate(Long memberId, Long accountId) {
+        return accountRepository.findActiveAccountForUpdate(memberId, accountId)
+                .orElseThrow(() -> new BizException(AccountErrorImpl.ACCOUNT_NOT_FOUND));
+    }
 }

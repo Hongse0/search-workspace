@@ -8,4 +8,5 @@ public interface AccountCommandPort {
     void delete(Account account);
     void withdrawCash(Long accountId, BigDecimal amount);
     void depositCash(Long accountId, BigDecimal sellAmount);
+    Account getActiveAccountForUpdate(Long memberId, Long accountId);
 }

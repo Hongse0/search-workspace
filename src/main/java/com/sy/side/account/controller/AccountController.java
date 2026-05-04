@@ -2,9 +2,13 @@ package com.sy.side.account.controller;
 
 import com.sy.side.account.application.port.in.CreateAccountUseCase;
 import com.sy.side.account.application.port.in.DeleteAccountUseCase;
+import com.sy.side.account.application.port.in.DepositAccountCashUseCase;
 import com.sy.side.account.application.port.in.GetAccountHoldingsUseCase;
 import com.sy.side.account.application.port.in.GetAccountUseCase;
+import com.sy.side.account.application.port.in.WithdrawAccountCashUseCase;
+import com.sy.side.account.dto.request.AccountCashRequest;
 import com.sy.side.account.dto.request.AccountCreateRequest;
+import com.sy.side.account.dto.response.AccountCashResponse;
 import com.sy.side.account.dto.response.AccountResponse;
 import com.sy.side.account.dto.response.AccountSelectResponse;
 import com.sy.side.common.annotation.UserParam;
@@ -26,6 +30,8 @@ public class AccountController {
     private final GetAccountUseCase getAccountUseCase;
     private final DeleteAccountUseCase deleteAccountUseCase;
     private final GetAccountHoldingsUseCase getAccountHoldingsUseCase;
+    private final DepositAccountCashUseCase depositAccountCashUseCase;
+    private final WithdrawAccountCashUseCase withdrawAccountCashUseCase;
 
     /** 계좌 등록 */
     @PostMapping("/register")
@@ -64,5 +70,35 @@ public class AccountController {
     ) {
         Long memberId = userSession.getMemberSession().getMemberId();
         deleteAccountUseCase.deleteAccount(memberId, accountId);
+    }
+
+    /** 계좌 현금 입금 */
+    @PostMapping("/{accountId}/cash/deposit")
+    public AccountCashResponse depositCash(
+            @UserParam UserSession userSession,
+            @PathVariable Long accountId,
+            @Valid @RequestBody AccountCashRequest request
+    ) {
+        Long memberId = userSession.getMemberSession().getMemberId();
+
+        log.info("[Account] depositCash memberId={}, accountId={}, amount={}",
+                memberId, accountId, request.amount());
+
+        return depositAccountCashUseCase.deposit(memberId, accountId, request);
+    }
+
+    /** 계좌 현금 출금 */
+    @PostMapping("/{accountId}/cash/withdraw")
+    public AccountCashResponse withdrawCash(
+            @UserParam UserSession userSession,
+            @PathVariable Long accountId,
+            @Valid @RequestBody AccountCashRequest request
+    ) {
+        Long memberId = userSession.getMemberSession().getMemberId();
+
+        log.info("[Account] withdrawCash memberId={}, accountId={}, amount={}",
+                memberId, accountId, request.amount());
+
+        return withdrawAccountCashUseCase.withdraw(memberId, accountId, request);
     }
 }
