@@ -1,0 +1,40 @@
+name: Deploy Microservice
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    name: Deploy side-microservice
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy microservice only via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_PORT }}
+          script: |
+            set -e
+
+            echo "===== Pull latest microservice source ====="
+            cd /home/ubuntu/source/microservice
+            git fetch origin master
+            git reset --hard origin/master
+
+            echo "===== Rebuild and restart microservice only ====="
+            cd /home/ubuntu/side-project
+            docker-compose up -d --no-deps --build microservice
+
+            echo "===== Clean dangling images ====="
+            docker image prune -f
+
+            echo "===== Check containers ====="
+            docker ps
+
+            echo "===== Recent microservice logs ====="
+            docker logs --tail=100 side-microservice
