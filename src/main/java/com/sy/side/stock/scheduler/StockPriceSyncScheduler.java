@@ -1,7 +1,9 @@
 package com.sy.side.stock.scheduler;
 
 import com.sy.side.stock.application.port.in.SyncStockPriceUseCase;
+import com.sy.side.stock.domain.StockPriceSyncHistory;
 import com.sy.side.stock.dto.response.StockPriceSyncResponse;
+import com.sy.side.stock.infrastructure.jpa.StockPriceSyncHistoryRepository;
 import com.sy.side.stock.util.StockUtil;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -15,29 +17,60 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class StockPriceSyncScheduler {
 
+    private static final String JOB_NAME = "STOCK_PRICE_DAILY_SYNC";
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+
     private final SyncStockPriceUseCase syncStockPriceUseCase;
+    private final StockPriceSyncHistoryRepository stockPriceSyncHistoryRepository;
 
     /**
      * 주식 가격 동기화
-     * 매일 오전 8시 실행
-     * - 당일 오전 8시에는 당일 종가 데이터가 없으므로 전 거래일 기준으로 동기화
+     * 매일 오전 11시 실행
+     * - KRX 데이터가 오전 8시 기준으로 아직 반영되지 않을 수 있어 오전 11시에 전 거래일 기준으로 동기화
      */
-    @Scheduled(cron = "0 0 8 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 0 11 * * *", zone = "Asia/Seoul")
     public void syncDailyStockPrices() {
         String basDt = StockUtil.resolveKrxPriceBaseDate(
-                LocalDateTime.now(ZoneId.of("Asia/Seoul"))
+                LocalDateTime.now(KST)
         );
 
-        log.info("[STOCK_PRICE_SCHEDULER] start. basDt={}", basDt);
-
-        StockPriceSyncResponse response = syncStockPriceUseCase.syncAll(basDt);
-
-        log.info(
-                "[STOCK_PRICE_SCHEDULER] done. basDt={}, requested={}, success={}, fail={}",
-                basDt,
-                response.getRequestedCount(),
-                response.getSuccessCount(),
-                response.getFailCount()
+        StockPriceSyncHistory history = stockPriceSyncHistoryRepository.save(
+                StockPriceSyncHistory.start(JOB_NAME, basDt)
         );
+
+        log.info("[STOCK_PRICE_SCHEDULER] start. basDt={}, historyId={}", basDt, history.getId());
+
+        try {
+            StockPriceSyncResponse response = syncStockPriceUseCase.syncAll(basDt);
+
+            history.success(
+                    response.getRequestedCount(),
+                    response.getSuccessCount(),
+                    response.getFailCount()
+            );
+
+            stockPriceSyncHistoryRepository.save(history);
+
+            log.info(
+                    "[STOCK_PRICE_SCHEDULER] done. basDt={}, historyId={}, requested={}, success={}, fail={}",
+                    basDt,
+                    history.getId(),
+                    response.getRequestedCount(),
+                    response.getSuccessCount(),
+                    response.getFailCount()
+            );
+        } catch (Exception e) {
+            history.fail(e.getMessage());
+            stockPriceSyncHistoryRepository.save(history);
+
+            log.error(
+                    "[STOCK_PRICE_SCHEDULER] failed. basDt={}, historyId={}",
+                    basDt,
+                    history.getId(),
+                    e
+            );
+
+            throw e;
+        }
     }
 }
