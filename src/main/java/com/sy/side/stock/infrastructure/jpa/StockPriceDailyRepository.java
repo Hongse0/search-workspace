@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 public interface StockPriceDailyRepository extends JpaRepository<StockPriceDaily, Long> {
@@ -30,4 +31,8 @@ public interface StockPriceDailyRepository extends JpaRepository<StockPriceDaily
         Long getStockId();
         Long getClosePrice();
     }
+
+    @Modifying
+    @Query("DELETE FROM StockPriceDaily s WHERE s.basDt < :baseDate")
+    int deleteByBasDtBefore(String baseDate);
 }
