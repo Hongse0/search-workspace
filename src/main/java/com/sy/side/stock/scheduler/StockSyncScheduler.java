@@ -26,7 +26,7 @@ public class StockSyncScheduler {
      * KRX 종목 마스터 동기화
      * 월/수/금 오전 7시 실행
      */
-    @Scheduled(cron = "0 0 7 * * MON,WED,FRI", zone = "Asia/Seoul")
+//    @Scheduled(cron = "0 0 7 * * MON,WED,FRI", zone = "Asia/Seoul")
     public void syncStockMaster() {
         String basDt = StockUtil.resolveKrxBaseDate(
                 LocalDateTime.now(KST)
