@@ -17,22 +17,31 @@ public final class StockUtil {
         LocalDate date = now.toLocalDate();
         DayOfWeek dow = date.getDayOfWeek();
 
-        // 주말이면 금요일로 이동
-        if (dow == DayOfWeek.SATURDAY) date = date.minusDays(1);
-        if (dow == DayOfWeek.SUNDAY)   date = date.minusDays(2);
-
-        // 평일이면 시간 기준 처리 (장 마감 이후를 안전하게 18:00로 둠)
-        LocalTime cutoff = LocalTime.of(18, 0);
-        if (now.toLocalTime().isBefore(cutoff)) {
-            // 장 마감 전에는 전 영업일로 잡는게 안전
-            date = date.minusDays(1);
-
-            // 전날이 주말이면 금요일로 보정
-            if (date.getDayOfWeek() == DayOfWeek.SATURDAY) date = date.minusDays(1);
-            if (date.getDayOfWeek() == DayOfWeek.SUNDAY)   date = date.minusDays(2);
+        // 주말이면 무조건 직전 금요일
+        if (dow == DayOfWeek.SATURDAY) {
+            return date.minusDays(1).format(DateTimeFormatter.BASIC_ISO_DATE);
         }
 
-        return date.format(DateTimeFormatter.BASIC_ISO_DATE); // YYYYMMDD
+        if (dow == DayOfWeek.SUNDAY) {
+            return date.minusDays(2).format(DateTimeFormatter.BASIC_ISO_DATE);
+        }
+
+        // 평일이면 18:00 이전에는 전 영업일
+        LocalTime cutoff = LocalTime.of(18, 0);
+
+        if (now.toLocalTime().isBefore(cutoff)) {
+            date = date.minusDays(1);
+
+            if (date.getDayOfWeek() == DayOfWeek.SATURDAY) {
+                date = date.minusDays(1);
+            }
+
+            if (date.getDayOfWeek() == DayOfWeek.SUNDAY) {
+                date = date.minusDays(2);
+            }
+        }
+
+        return date.format(DateTimeFormatter.BASIC_ISO_DATE);
     }
 
     public static BigDecimal defaultZero(BigDecimal value) {
