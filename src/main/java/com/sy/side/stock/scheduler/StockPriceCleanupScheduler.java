@@ -26,7 +26,7 @@ public class StockPriceCleanupScheduler {
      * - 오늘 기준 5일 이전 bas_dt 데이터 삭제
      */
     @Transactional
-    @Scheduled(cron = "0 30 11 * * *", zone = "Asia/Seoul")
+//    @Scheduled(cron = "0 30 11 * * *", zone = "Asia/Seoul")
     public void cleanupOldStockPrices() {
         String baseDate = LocalDate.now(KST)
                 .minusDays(5)
