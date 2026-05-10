@@ -22,14 +22,14 @@ public class EtfSyncController {
     /**
      * ETF 종목 마스터 동기화
      */
-    @PostMapping("/etf")
-    public int syncEtf(@RequestParam(required = false) String basDt) {
-        String targetBasDt = resolveBasDt(basDt);
-
-        log.info("[ETF 종목 마스터 수동 동기화 요청] basDt={}", targetBasDt);
-
-        return syncEtfItemUseCase.syncEtfItems(targetBasDt);
-    }
+//    @PostMapping("/etf")
+//    public int syncEtf(@RequestParam(required = false) String basDt) {
+//        String targetBasDt = resolveBasDt(basDt);
+//
+//        log.info("[ETF 종목 마스터 수동 동기화 요청] basDt={}", targetBasDt);
+//
+//        return syncEtfItemUseCase.syncEtfItems(targetBasDt);
+//    }
 
     private String resolveBasDt(String basDt) {
         if (basDt != null && !basDt.isBlank()) {

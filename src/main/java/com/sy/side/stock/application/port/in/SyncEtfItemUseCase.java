@@ -1,5 +1,11 @@
 package com.sy.side.stock.application.port.in;
 
 public interface SyncEtfItemUseCase {
-    int syncEtfItems(String basDt);
+    SyncEtfItemResult sync(String basDt);
+    record SyncEtfItemResult(
+            int totalCount,
+            int saved,
+            int totalPages
+    ) {
+    }
 }
