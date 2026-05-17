@@ -3,7 +3,6 @@ package com.sy.side.position.infrastructure.jpa;
 import com.sy.side.position.domain.AccountPosition;
 import com.sy.side.trade.domain.Market;
 import jakarta.persistence.LockModeType;
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,14 +11,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface AccountPositionRepository extends JpaRepository<AccountPosition, Long> {
-
-    @Query("""
-        select coalesce(sum(ap.costAmount), 0)
-        from AccountPosition ap
-        where ap.account.accountId = :accountId
-          and ap.quantity > 0
-    """)
-    BigDecimal sumStockAssetValueByAccountId(@Param("accountId") Long accountId);
 
     @Query("""
         select count(ap)
