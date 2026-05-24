@@ -40,8 +40,7 @@ public class EtfPublicDataAdapter implements LoadEtfPriceInfoPort {
             EtfPriceInfoResponse response = requestPage(basDt, pageNo);
 
             if (!isValidResponse(response)) {
-                log.warn("[ETF API 응답 비정상] basDt={}, pageNo={}", basDt, pageNo);
-                return result;
+                throw new IllegalStateException("ETF API response is invalid. basDt=" + basDt + ", pageNo=" + pageNo);
             }
 
             log.info("[ETF API 응답] resultCode={}, resultMsg={}",
@@ -62,6 +61,10 @@ public class EtfPublicDataAdapter implements LoadEtfPriceInfoPort {
             pageNo++;
 
         } while ((pageNo - 1) * NUM_OF_ROWS < totalCount);
+
+        if (result.isEmpty()) {
+            throw new IllegalStateException("ETF API returned no items. basDt=" + basDt + ", totalCount=" + totalCount);
+        }
 
         return result;
     }

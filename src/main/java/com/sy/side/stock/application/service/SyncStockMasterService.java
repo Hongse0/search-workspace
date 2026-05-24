@@ -4,6 +4,7 @@ import com.sy.side.search.api.dto.response.KrxListedInfoResponse;
 import com.sy.side.stock.application.port.in.SyncStockMasterUseCase;
 import com.sy.side.stock.application.port.out.LoadKrxStockItemPort;
 import com.sy.side.stock.application.port.out.SaveStockItemMasterPort;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,10 +23,19 @@ public class SyncStockMasterService implements SyncStockMasterUseCase {
         int totalSaved = 0;
 
         KrxListedInfoResponse first = loadKrxStockItemPort.fetch(basDt, pageNo);
+        validateHeader(first, basDt, pageNo);
+
         var body = safeBody(first);
 
         int totalCount = body.totalCount();
         int numOfRows = body.numOfRows();
+
+        if (totalCount <= 0) {
+            throw new IllegalStateException("KRX returned no stock items. basDt=" + basDt
+                    + ", totalCount=" + totalCount
+                    + ", resultCode=" + first.response().header().resultCode()
+                    + ", resultMsg=" + first.response().header().resultMsg());
+        }
 
         if (numOfRows <= 0) {
             throw new IllegalStateException("KRX numOfRows is invalid: " + numOfRows);
@@ -37,6 +47,7 @@ public class SyncStockMasterService implements SyncStockMasterUseCase {
 
         for (pageNo = 2; pageNo <= totalPages; pageNo++) {
             KrxListedInfoResponse response = loadKrxStockItemPort.fetch(basDt, pageNo);
+            validateHeader(response, basDt, pageNo);
             totalSaved += saveStockItemMasterPort.saveFromResponse(response);
 
             if (pageNo % 10 == 0) {
@@ -62,5 +73,20 @@ public class SyncStockMasterService implements SyncStockMasterUseCase {
         }
 
         return res.response().body();
+    }
+
+    private void validateHeader(KrxListedInfoResponse res, String basDt, int pageNo) {
+        if (res == null || res.response() == null || res.response().header() == null) {
+            throw new IllegalStateException("KRX response/header is null. basDt=" + basDt + ", pageNo=" + pageNo);
+        }
+
+        KrxListedInfoResponse.Header header = res.response().header();
+
+        if (!Objects.equals(header.resultCode(), "00")) {
+            throw new IllegalStateException("KRX API call failed. resultCode=" + header.resultCode()
+                    + ", resultMsg=" + header.resultMsg()
+                    + ", basDt=" + basDt
+                    + ", pageNo=" + pageNo);
+        }
     }
 }
