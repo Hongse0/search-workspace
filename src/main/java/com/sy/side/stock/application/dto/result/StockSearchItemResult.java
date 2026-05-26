@@ -1,5 +1,6 @@
 package com.sy.side.stock.application.dto.result;
 
+import java.math.BigDecimal;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -13,4 +14,5 @@ public class StockSearchItemResult {
     private final String corpNm;
     private final String activeYn;
     private final String basDt;
+    private final BigDecimal currentPrice;
 }
