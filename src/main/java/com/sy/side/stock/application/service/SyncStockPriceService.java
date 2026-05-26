@@ -1,11 +1,13 @@
 package com.sy.side.stock.application.service;
 
 import com.sy.side.stock.application.port.in.SyncStockPriceUseCase;
+import com.sy.side.stock.application.port.out.LoadEtfPriceInfoPort;
 import com.sy.side.stock.application.port.out.StockItemQueryPort;
 import com.sy.side.stock.application.port.out.StockPriceApiPort;
 import com.sy.side.stock.application.port.out.StockPriceCommandPort;
 import com.sy.side.stock.domain.StockItemMaster;
 import com.sy.side.stock.domain.StockPriceDaily;
+import com.sy.side.stock.dto.response.EtfPriceInfoItem;
 import com.sy.side.stock.dto.response.StockPriceApiResponse;
 import com.sy.side.stock.dto.response.StockPriceSyncResponse;
 import com.sy.side.stock.util.StockUtil;
@@ -13,9 +15,14 @@ import jakarta.transaction.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -23,6 +30,7 @@ public class SyncStockPriceService implements SyncStockPriceUseCase {
 
     private final StockItemQueryPort stockItemQueryPort;
     private final StockPriceApiPort stockPriceApiPort;
+    private final LoadEtfPriceInfoPort loadEtfPriceInfoPort;
     private final StockPriceCommandPort stockPriceCommandPort;
 
     @Override
@@ -60,7 +68,13 @@ public class SyncStockPriceService implements SyncStockPriceUseCase {
 
     @Override
     public StockPriceSyncResponse syncAll(String basDt) {
-        List<StockItemMaster> stocks = stockItemQueryPort.findAllActive();
+        List<StockItemMaster> activeItems = stockItemQueryPort.findAllActive();
+        List<StockItemMaster> stocks = activeItems.stream()
+                .filter(StockItemMaster::isStock)
+                .toList();
+        List<StockItemMaster> etfs = activeItems.stream()
+                .filter(StockItemMaster::isEtf)
+                .toList();
 
         int success = 0;
         int fail = 0;
@@ -86,11 +100,99 @@ public class SyncStockPriceService implements SyncStockPriceUseCase {
             }
         }
 
+        PriceSyncCount etfCount = syncEtfPrices(etfs, targetBasDt);
+        success += etfCount.success();
+        fail += etfCount.fail();
+
         return StockPriceSyncResponse.builder()
-                .requestedCount(stocks.size())
+                .requestedCount(stocks.size() + etfs.size())
                 .successCount(success)
                 .failCount(fail)
                 .build();
+    }
+
+    private PriceSyncCount syncEtfPrices(List<StockItemMaster> etfs, String targetBasDt) {
+        if (etfs.isEmpty()) {
+            return new PriceSyncCount(0, 0);
+        }
+
+        List<EtfPriceInfoItem> items;
+        try {
+            items = loadEtfPriceInfoPort.loadEtfPriceInfos(targetBasDt);
+        } catch (Exception e) {
+            log.warn("[ETF_PRICE_SYNC] API failed. basDt={}, requested={}", targetBasDt, etfs.size(), e);
+            return new PriceSyncCount(0, etfs.size());
+        }
+
+        Map<String, EtfPriceInfoItem> itemByApiCode = items.stream()
+                .filter(item -> item.getSrtnCd() != null && !item.getSrtnCd().isBlank())
+                .collect(Collectors.toMap(
+                        item -> item.getSrtnCd().trim(),
+                        Function.identity(),
+                        (left, right) -> left
+                ));
+
+        int success = 0;
+        int fail = 0;
+
+        for (StockItemMaster etf : etfs) {
+            try {
+                String apiCode = normalizeApiCode(etf.getSrtnCd());
+                EtfPriceInfoItem item = itemByApiCode.get(apiCode);
+
+                if (item == null) {
+                    fail++;
+                    continue;
+                }
+
+                upsertEtf(item, etf.getSrtnCd());
+                success++;
+            } catch (Exception e) {
+                fail++;
+                log.warn("[ETF_PRICE_SYNC] item failed. basDt={}, srtnCd={}", targetBasDt, etf.getSrtnCd(), e);
+            }
+        }
+
+        return new PriceSyncCount(success, fail);
+    }
+
+    private void upsertEtf(EtfPriceInfoItem item, String dbSrtnCd) {
+        StockPriceDaily entity = stockPriceCommandPort.findBySrtnCdAndBasDt(dbSrtnCd, item.getBasDt())
+                .orElseGet(() -> StockPriceDaily.create(
+                        dbSrtnCd,
+                        item.getBasDt(),
+                        item.getIsinCd(),
+                        item.getItmsNm(),
+                        "ETF",
+                        parseLong(item.getClpr()),
+                        parseLong(item.getVs()),
+                        parseDecimal(item.getFltRt()),
+                        parseLong(item.getMkp()),
+                        parseLong(item.getHipr()),
+                        parseLong(item.getLopr()),
+                        parseLong(item.getTrqu()),
+                        parseLong(item.getTrPrc()),
+                        parseLong(item.getStLstgCnt()),
+                        parseLong(item.getMrktTotAmt())
+                ));
+
+        entity.updateFrom(
+                item.getIsinCd(),
+                item.getItmsNm(),
+                "ETF",
+                parseLong(item.getClpr()),
+                parseLong(item.getVs()),
+                parseDecimal(item.getFltRt()),
+                parseLong(item.getMkp()),
+                parseLong(item.getHipr()),
+                parseLong(item.getLopr()),
+                parseLong(item.getTrqu()),
+                parseLong(item.getTrPrc()),
+                parseLong(item.getStLstgCnt()),
+                parseLong(item.getMrktTotAmt())
+        );
+
+        stockPriceCommandPort.save(entity);
     }
 
     private void upsert(StockPriceApiResponse.Item item, String dbSrtnCd) {
@@ -167,5 +269,8 @@ public class SyncStockPriceService implements SyncStockPriceUseCase {
             return null;
         }
         return new BigDecimal(value.replaceAll(",", ""));
+    }
+
+    private record PriceSyncCount(int success, int fail) {
     }
 }
