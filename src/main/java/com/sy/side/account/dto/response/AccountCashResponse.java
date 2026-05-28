@@ -4,6 +4,9 @@ import java.math.BigDecimal;
 
 public record AccountCashResponse(
         Long accountId,
-        BigDecimal cashBalance
+        BigDecimal cashBalance,
+        BigDecimal stockAssetValue,
+        BigDecimal totalAssetValue,
+        Long holdingCount
 ) {
 }

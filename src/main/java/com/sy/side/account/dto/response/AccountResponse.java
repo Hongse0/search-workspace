@@ -16,6 +16,9 @@ public class AccountResponse {
     private String accountName;
     private String baseCurrency;
     private String cashBalance;
+    private String stockAssetValue;
+    private String totalAssetValue;
+    private Long holdingCount;
     private LocalDateTime createdAt;
 
     public AccountResponse(Account account) {
@@ -26,6 +29,9 @@ public class AccountResponse {
         this.accountName = account.getAccountName();
         this.baseCurrency = account.getBaseCurrency();
         this.cashBalance = account.getCashBalance().toPlainString();
+        this.stockAssetValue = account.getStockAssetValue().toPlainString();
+        this.totalAssetValue = account.getTotalAssetValue().toPlainString();
+        this.holdingCount = account.getHoldingCount();
         this.createdAt = account.getCreatedAt();
     }
 }

@@ -52,6 +52,16 @@ public class AccountController {
         return getAccountUseCase.findAllAccount(memberId);
     }
 
+    /** 계좌 단건 조회 */
+    @GetMapping("/{accountId}")
+    public AccountSelectResponse selectAccount(
+            @UserParam UserSession userSession,
+            @PathVariable Long accountId
+    ) {
+        Long memberId = userSession.getMemberSession().getMemberId();
+        return getAccountUseCase.findMyAccount(memberId, accountId);
+    }
+
     /** 보유 주식 조회 */
     @GetMapping("/{accountId}/holdings")
     public List<AccountPositionSummary> getHoldings(

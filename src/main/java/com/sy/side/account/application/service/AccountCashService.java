@@ -31,7 +31,10 @@ public class AccountCashService implements DepositAccountCashUseCase, WithdrawAc
 
         return new AccountCashResponse(
                 savedAccount.getAccountId(),
-                savedAccount.getCashBalance()
+                savedAccount.getCashBalance(),
+                savedAccount.getStockAssetValue(),
+                savedAccount.getTotalAssetValue(),
+                savedAccount.getHoldingCount()
         );
     }
 
@@ -49,7 +52,10 @@ public class AccountCashService implements DepositAccountCashUseCase, WithdrawAc
 
         return new AccountCashResponse(
                 savedAccount.getAccountId(),
-                savedAccount.getCashBalance()
+                savedAccount.getCashBalance(),
+                savedAccount.getStockAssetValue(),
+                savedAccount.getTotalAssetValue(),
+                savedAccount.getHoldingCount()
         );
     }
 }
