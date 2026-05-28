@@ -6,8 +6,6 @@ import com.sy.side.account.domain.Account;
 import com.sy.side.account.dto.response.AccountSelectResponse;
 import com.sy.side.account.error.AccountErrorImpl;
 import com.sy.side.common.exception.BizException;
-import com.sy.side.position.application.port.out.PositionQueryPort;
-import java.math.BigDecimal;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,7 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class AccountQueryService implements GetAccountUseCase {
 
     private final AccountQueryPort accountQueryPort;
-    private final PositionQueryPort positionQueryPort;
 
     @Override
     public List<AccountSelectResponse> findAllAccount(Long memberId) {
@@ -38,9 +35,6 @@ public class AccountQueryService implements GetAccountUseCase {
     }
 
     private AccountSelectResponse toAccountSelectResponse(Account account) {
-        BigDecimal stockAssetValue = positionQueryPort.sumStockAssetValueByAccountId(account.getAccountId());
-        Long holdingCount = positionQueryPort.countHoldingByAccountId(account.getAccountId());
-
-        return new AccountSelectResponse(account, stockAssetValue, holdingCount);
+        return new AccountSelectResponse(account, null, null);
     }
 }

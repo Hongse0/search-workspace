@@ -21,8 +21,15 @@ public class AccountSelectResponse {
 
     public AccountSelectResponse(Account account, BigDecimal stockAssetValue, Long holdingCount) {
         BigDecimal safeCashBalance = account.getCashBalance() != null ? account.getCashBalance() : BigDecimal.ZERO;
-        BigDecimal safeStockAssetValue = stockAssetValue != null ? stockAssetValue : BigDecimal.ZERO;
-        Long safeHoldingCount = holdingCount != null ? holdingCount : 0L;
+        BigDecimal safeStockAssetValue = stockAssetValue != null
+                ? stockAssetValue
+                : account.getStockAssetValue() != null ? account.getStockAssetValue() : BigDecimal.ZERO;
+        BigDecimal safeTotalAssetValue = account.getTotalAssetValue() != null
+                ? account.getTotalAssetValue()
+                : safeCashBalance.add(safeStockAssetValue);
+        Long safeHoldingCount = holdingCount != null
+                ? holdingCount
+                : account.getHoldingCount() != null ? account.getHoldingCount() : 0L;
 
         this.accountId = account.getAccountId();
         this.brokerName = account.getBrokerName();
@@ -31,7 +38,7 @@ public class AccountSelectResponse {
         this.baseCurrency = account.getBaseCurrency();
         this.cashBalance = safeCashBalance;
         this.stockAssetValue = safeStockAssetValue;
-        this.totalAssetValue = safeCashBalance.add(safeStockAssetValue);
+        this.totalAssetValue = safeTotalAssetValue;
         this.holdingCount = safeHoldingCount;
         this.createdAt = account.getCreatedAt();
     }

@@ -1,6 +1,7 @@
 package com.sy.side.stock.scheduler;
 
 import com.sy.side.stock.application.port.in.SyncStockPriceUseCase;
+import com.sy.side.stock.application.event.StockPriceSyncCompletedEvent;
 import com.sy.side.stock.domain.StockPriceSyncHistory;
 import com.sy.side.stock.dto.response.StockPriceSyncResponse;
 import com.sy.side.stock.infrastructure.jpa.StockPriceSyncHistoryRepository;
@@ -9,6 +10,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -22,6 +24,7 @@ public class StockPriceSyncScheduler {
 
     private final SyncStockPriceUseCase syncStockPriceUseCase;
     private final StockPriceSyncHistoryRepository stockPriceSyncHistoryRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 주식 가격 동기화
@@ -50,6 +53,12 @@ public class StockPriceSyncScheduler {
             );
 
             stockPriceSyncHistoryRepository.save(history);
+            eventPublisher.publishEvent(new StockPriceSyncCompletedEvent(
+                    JOB_NAME,
+                    basDt,
+                    history.getId(),
+                    response
+            ));
 
             log.info(
                     "[STOCK_PRICE_SCHEDULER] done. basDt={}, historyId={}, requested={}, success={}, fail={}",

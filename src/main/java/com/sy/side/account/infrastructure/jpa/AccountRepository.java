@@ -23,6 +23,8 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
 
     List<Account> findAllByMemberIdOrderByAccountIdAsc(Long memberId);
 
+    List<Account> findAllByActiveTrueOrderByAccountIdAsc();
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
         select a

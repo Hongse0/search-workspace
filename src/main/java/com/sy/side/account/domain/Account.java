@@ -58,6 +58,15 @@ public class Account {
     @Column(name = "cash_balance", nullable = false, precision = 18, scale = 2)
     private BigDecimal cashBalance;
 
+    @Column(name = "stock_asset_value", nullable = false, precision = 18, scale = 2)
+    private BigDecimal stockAssetValue;
+
+    @Column(name = "total_asset_value", nullable = false, precision = 18, scale = 2)
+    private BigDecimal totalAssetValue;
+
+    @Column(name = "holding_count", nullable = false)
+    private Long holdingCount;
+
     @Column(name = "is_active", nullable = false)
     private boolean active;
 
@@ -86,6 +95,9 @@ public class Account {
                 .accountName(accountName)
                 .baseCurrency(baseCurrency == null ? "KRW" : baseCurrency)
                 .cashBalance(balance)
+                .stockAssetValue(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP))
+                .totalAssetValue(balance)
+                .holdingCount(0L)
                 .active(true)
                 .build();
     }
@@ -115,6 +127,7 @@ public class Account {
     public void withdraw(BigDecimal amount) {
         validateWithdrawable(amount);
         this.cashBalance = this.cashBalance.subtract(amount);
+        updateTotalAssetValue();
     }
 
     @PrePersist
@@ -127,6 +140,15 @@ public class Account {
         } else {
             this.cashBalance = this.cashBalance.setScale(2, RoundingMode.DOWN);
         }
+        if (this.stockAssetValue == null) {
+            this.stockAssetValue = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        } else {
+            this.stockAssetValue = this.stockAssetValue.setScale(2, RoundingMode.HALF_UP);
+        }
+        if (this.holdingCount == null) {
+            this.holdingCount = 0L;
+        }
+        updateTotalAssetValue();
     }
 
     public void deposit(BigDecimal amount) {
@@ -135,5 +157,25 @@ public class Account {
         }
 
         this.cashBalance = this.cashBalance.add(amount);
+        updateTotalAssetValue();
+    }
+
+    public void updateAssetEvaluation(BigDecimal stockAssetValue, Long holdingCount) {
+        this.stockAssetValue = normalizeMoney(stockAssetValue);
+        this.holdingCount = holdingCount == null ? 0L : holdingCount;
+        updateTotalAssetValue();
+    }
+
+    private void updateTotalAssetValue() {
+        BigDecimal cash = normalizeMoney(this.cashBalance);
+        BigDecimal stock = normalizeMoney(this.stockAssetValue);
+        this.cashBalance = cash;
+        this.stockAssetValue = stock;
+        this.totalAssetValue = cash.add(stock).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private static BigDecimal normalizeMoney(BigDecimal amount) {
+        BigDecimal safeAmount = amount == null ? BigDecimal.ZERO : amount;
+        return safeAmount.setScale(2, RoundingMode.HALF_UP);
     }
 }

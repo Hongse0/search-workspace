@@ -15,8 +15,6 @@ public class SnapshotAccountQueryPersistenceAdapter implements SnapshotAccountQu
 
     @Override
     public List<Account> findAllActiveAccounts() {
-        return accountRepository.findAll().stream()
-                .filter(Account::isActive)
-                .toList();
+        return accountRepository.findAllByActiveTrueOrderByAccountIdAsc();
     }
 }
