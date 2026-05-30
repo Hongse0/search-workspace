@@ -6,8 +6,12 @@ import com.sy.side.snapshot.application.port.out.AssetSnapshotCommandPort;
 import com.sy.side.snapshot.application.port.out.AssetSnapshotQueryPort;
 import com.sy.side.snapshot.application.port.out.SnapshotPositionQueryPort;
 import com.sy.side.snapshot.application.port.out.SnapshotStockPriceQueryPort;
+import com.sy.side.snapshot.application.port.out.WeeklyAssetSnapshotCommandPort;
+import com.sy.side.snapshot.application.port.out.WeeklyAssetSnapshotQueryPort;
 import com.sy.side.snapshot.domain.AccountAssetSnapshot;
+import com.sy.side.snapshot.domain.AccountWeeklyAssetSnapshot;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -25,6 +29,8 @@ public class AccountAssetSnapshotPersister {
     private final SnapshotStockPriceQueryPort snapshotStockPriceQueryPort;
     private final AssetSnapshotCommandPort assetSnapshotCommandPort;
     private final AssetSnapshotQueryPort assetSnapshotQueryPort;
+    private final WeeklyAssetSnapshotCommandPort weeklyAssetSnapshotCommandPort;
+    private final WeeklyAssetSnapshotQueryPort weeklyAssetSnapshotQueryPort;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void saveOrUpdate(Account account, String snapshotYm) {
@@ -41,6 +47,29 @@ public class AccountAssetSnapshotPersister {
                                         account.getMemberId(),
                                         account.getAccountId(),
                                         snapshotYm,
+                                        account.getCashBalance(),
+                                        stockEvaluation,
+                                        holdingCount
+                                )
+                        )
+                );
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void saveOrUpdateWeekly(Account account, LocalDate snapshotDate) {
+        List<AccountPosition> positions = snapshotPositionQueryPort.findAllByAccountId(account.getAccountId());
+
+        BigDecimal stockEvaluation = calculateStockEvaluation(positions);
+        long holdingCount = positions.size();
+
+        weeklyAssetSnapshotQueryPort.findByAccountIdAndSnapshotDate(account.getAccountId(), snapshotDate)
+                .ifPresentOrElse(
+                        existing -> existing.overwrite(account.getCashBalance(), stockEvaluation, holdingCount),
+                        () -> weeklyAssetSnapshotCommandPort.save(
+                                AccountWeeklyAssetSnapshot.create(
+                                        account.getMemberId(),
+                                        account.getAccountId(),
+                                        snapshotDate,
                                         account.getCashBalance(),
                                         stockEvaluation,
                                         holdingCount
