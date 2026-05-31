@@ -51,7 +51,7 @@ public class AuthService {
                 user.getNickname()
         );
 
-        return new LoginResponse(token, jwtTokenProvider.getExpirationMs());
+        return new LoginResponse(token, jwtTokenProvider.getExpirationMs(), user.getNickname());
     }
 
 
