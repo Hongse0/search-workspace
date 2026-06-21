@@ -3,6 +3,7 @@ package com.sy.side.stock.controller;
 import com.sy.side.stock.application.port.in.GetStockInvestmentScoreUseCase;
 import com.sy.side.stock.application.port.in.SyncStockInvestmentScoreUseCase;
 import com.sy.side.stock.dto.response.StockInvestmentScoreResponse;
+import com.sy.side.stock.dto.response.StockInvestmentScoreSyncStartResponse;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
@@ -29,7 +30,13 @@ public class StockInvestmentScoreController {
     }
 
     @PostMapping("/investment-scores/sync")
-    public SyncStockInvestmentScoreUseCase.SyncStockInvestmentScoreResult syncInvestmentScores() {
-        return syncStockInvestmentScoreUseCase.sync();
+    public StockInvestmentScoreSyncStartResponse syncInvestmentScores() {
+        String jobId = syncStockInvestmentScoreUseCase.startAsync();
+
+        return StockInvestmentScoreSyncStartResponse.builder()
+                .jobId(jobId)
+                .status("STARTED")
+                .message("종목 투자 의견 점수 동기화 배치가 시작되었습니다.")
+                .build();
     }
 }
