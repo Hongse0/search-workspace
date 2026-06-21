@@ -6,6 +6,7 @@ import com.sy.side.stock.application.dto.result.StockSearchResult;
 import com.sy.side.stock.dto.request.StockSearchRequest;
 import com.sy.side.stock.dto.response.StockSearchItemResponse;
 import com.sy.side.stock.dto.response.StockSearchResponse;
+import com.sy.side.stock.dto.response.StockInvestmentScoreSummaryResponse;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -45,6 +46,19 @@ public class StockSearchWebMapper {
                 .currentPrice(result.getCurrentPrice())
                 .vs(result.getVs())
                 .fltRt(result.getFltRt())
+                .investmentScore(toInvestmentScoreResponse(result))
+                .build();
+    }
+
+    private StockInvestmentScoreSummaryResponse toInvestmentScoreResponse(StockSearchItemResult result) {
+        if (result.getInvestmentScore() == null) {
+            return null;
+        }
+
+        return StockInvestmentScoreSummaryResponse.builder()
+                .basDt(result.getInvestmentScore().getBasDt())
+                .totalScore(result.getInvestmentScore().getTotalScore())
+                .opinion(result.getInvestmentScore().getOpinion())
                 .build();
     }
 }

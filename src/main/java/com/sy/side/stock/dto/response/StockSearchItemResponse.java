@@ -17,4 +17,5 @@ public class StockSearchItemResponse {
     private BigDecimal currentPrice;
     private Long vs;
     private BigDecimal fltRt;
+    private StockInvestmentScoreSummaryResponse investmentScore;
 }

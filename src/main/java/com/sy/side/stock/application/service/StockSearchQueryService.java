@@ -3,12 +3,14 @@ package com.sy.side.stock.application.service;
 import com.sy.side.common.exception.BizException;
 import com.sy.side.stock.application.dto.command.StockAutocompleteCommand;
 import com.sy.side.stock.application.dto.command.StockSearchCommand;
+import com.sy.side.stock.application.dto.result.StockInvestmentScoreSummaryResult;
 import com.sy.side.stock.application.dto.result.StockPriceSnapshotResult;
 import com.sy.side.stock.application.dto.result.StockSearchItemResult;
 import com.sy.side.stock.application.dto.result.StockSearchResult;
 import com.sy.side.stock.application.port.in.AutocompleteStocksUseCase;
 import com.sy.side.stock.application.port.in.GetStockByCodeUseCase;
 import com.sy.side.stock.application.port.in.SearchStocksUseCase;
+import com.sy.side.stock.application.port.out.StockInvestmentScoreQueryPort;
 import com.sy.side.stock.application.port.out.StockPriceQueryPort;
 import com.sy.side.stock.application.port.out.StockSearchPort;
 import com.sy.side.stock.error.StockErrorImpl;
@@ -26,6 +28,7 @@ public class StockSearchQueryService
 
     private final StockSearchPort stockSearchPort;
     private final StockPriceQueryPort stockPriceQueryPort;
+    private final StockInvestmentScoreQueryPort stockInvestmentScoreQueryPort;
 
     @Override
     public StockSearchResult search(StockSearchCommand command) {
@@ -46,7 +49,11 @@ public class StockSearchQueryService
                 ? Map.of()
                 : stockPriceQueryPort.findLatestPriceSnapshotMapBySrtnCd(Set.of(result.getSrtnCd()));
 
-        return withCurrentPrice(result, priceMap);
+        Map<String, StockInvestmentScoreSummaryResult> scoreMap = result.getSrtnCd() == null
+                ? Map.of()
+                : stockInvestmentScoreQueryPort.findLatestScoreMapBySrtnCd(Set.of(result.getSrtnCd()));
+
+        return enrichItem(result, priceMap, scoreMap);
     }
 
     private StockSearchResult withCurrentPrices(StockSearchResult result) {
@@ -56,22 +63,26 @@ public class StockSearchQueryService
                 .collect(Collectors.toSet());
         Map<String, StockPriceSnapshotResult> priceMap =
                 stockPriceQueryPort.findLatestPriceSnapshotMapBySrtnCd(srtnCds);
+        Map<String, StockInvestmentScoreSummaryResult> scoreMap =
+                stockInvestmentScoreQueryPort.findLatestScoreMapBySrtnCd(srtnCds);
 
         return StockSearchResult.builder()
                 .query(result.getQuery())
                 .size(result.getSize())
                 .total(result.getTotal())
                 .items(result.getItems().stream()
-                        .map(item -> withCurrentPrice(item, priceMap))
+                        .map(item -> enrichItem(item, priceMap, scoreMap))
                         .toList())
                 .build();
     }
 
-    private StockSearchItemResult withCurrentPrice(
+    private StockSearchItemResult enrichItem(
             StockSearchItemResult item,
-            Map<String, StockPriceSnapshotResult> priceMap
+            Map<String, StockPriceSnapshotResult> priceMap,
+            Map<String, StockInvestmentScoreSummaryResult> scoreMap
     ) {
         StockPriceSnapshotResult price = priceMap.get(item.getSrtnCd());
+        StockInvestmentScoreSummaryResult score = scoreMap.get(item.getSrtnCd());
 
         return StockSearchItemResult.builder()
                 .srtnCd(item.getSrtnCd())
@@ -84,6 +95,7 @@ public class StockSearchQueryService
                 .currentPrice(price == null ? null : price.getClosePrice())
                 .vs(price == null ? null : price.getVs())
                 .fltRt(price == null ? null : price.getFltRt())
+                .investmentScore(score)
                 .build();
     }
 }
