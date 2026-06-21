@@ -1,5 +1,6 @@
 package com.sy.side.stock.infrastructure;
 
+import com.sy.side.stock.application.dto.result.StockPriceSnapshotResult;
 import com.sy.side.stock.application.port.out.StockPriceQueryPort;
 import com.sy.side.stock.infrastructure.jpa.StockPriceDailyRepository;
 import java.math.BigDecimal;
@@ -16,7 +17,7 @@ public class StockPriceQueryPersistenceAdapter implements StockPriceQueryPort {
     private final StockPriceDailyRepository stockPriceDailyRepository;
 
     @Override
-    public Map<String, BigDecimal> findLatestPriceMapBySrtnCd(Set<String> srtnCds) {
+    public Map<String, StockPriceSnapshotResult> findLatestPriceSnapshotMapBySrtnCd(Set<String> srtnCds) {
         if (srtnCds.isEmpty()) {
             return Map.of();
         }
@@ -24,9 +25,14 @@ public class StockPriceQueryPersistenceAdapter implements StockPriceQueryPort {
         return stockPriceDailyRepository.findLatestPricesBySrtnCd(srtnCds).stream()
                 .collect(Collectors.toMap(
                         StockPriceDailyRepository.StockPriceByCodeRow::getSrtnCd,
-                        row -> row.getClosePrice() == null
-                                ? BigDecimal.ZERO
-                                : BigDecimal.valueOf(row.getClosePrice())
+                        row -> StockPriceSnapshotResult.builder()
+                                .basDt(row.getBasDt())
+                                .closePrice(row.getClosePrice() == null
+                                        ? BigDecimal.ZERO
+                                        : BigDecimal.valueOf(row.getClosePrice()))
+                                .vs(row.getVs())
+                                .fltRt(row.getFltRt())
+                                .build()
                 ));
     }
 }

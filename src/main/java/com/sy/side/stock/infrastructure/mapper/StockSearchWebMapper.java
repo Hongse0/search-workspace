@@ -43,6 +43,8 @@ public class StockSearchWebMapper {
                 .activeYn(result.getActiveYn())
                 .basDt(result.getBasDt())
                 .currentPrice(result.getCurrentPrice())
+                .vs(result.getVs())
+                .fltRt(result.getFltRt())
                 .build();
     }
 }

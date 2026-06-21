@@ -1,6 +1,7 @@
 package com.sy.side.stock.infrastructure.jpa;
 
 import com.sy.side.stock.domain.StockPriceDaily;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -36,7 +37,10 @@ public interface StockPriceDailyRepository extends JpaRepository<StockPriceDaily
     @Query(value = """
     SELECT
         spd.srtn_cd AS srtnCd,
-        spd.clpr AS closePrice
+        spd.bas_dt AS basDt,
+        spd.clpr AS closePrice,
+        spd.vs AS vs,
+        spd.flt_rt AS fltRt
     FROM stock_price_daily spd
     WHERE spd.srtn_cd IN (:srtnCds)
     AND spd.bas_dt = (
@@ -49,7 +53,10 @@ public interface StockPriceDailyRepository extends JpaRepository<StockPriceDaily
 
     interface StockPriceByCodeRow {
         String getSrtnCd();
+        String getBasDt();
         Long getClosePrice();
+        Long getVs();
+        BigDecimal getFltRt();
     }
 
     @Modifying

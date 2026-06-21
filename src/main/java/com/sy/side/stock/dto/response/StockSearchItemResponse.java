@@ -15,4 +15,6 @@ public class StockSearchItemResponse {
     private String activeYn;
     private String basDt;
     private BigDecimal currentPrice;
+    private Long vs;
+    private BigDecimal fltRt;
 }

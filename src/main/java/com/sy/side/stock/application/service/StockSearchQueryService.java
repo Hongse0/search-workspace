@@ -3,6 +3,7 @@ package com.sy.side.stock.application.service;
 import com.sy.side.common.exception.BizException;
 import com.sy.side.stock.application.dto.command.StockAutocompleteCommand;
 import com.sy.side.stock.application.dto.command.StockSearchCommand;
+import com.sy.side.stock.application.dto.result.StockPriceSnapshotResult;
 import com.sy.side.stock.application.dto.result.StockSearchItemResult;
 import com.sy.side.stock.application.dto.result.StockSearchResult;
 import com.sy.side.stock.application.port.in.AutocompleteStocksUseCase;
@@ -11,7 +12,6 @@ import com.sy.side.stock.application.port.in.SearchStocksUseCase;
 import com.sy.side.stock.application.port.out.StockPriceQueryPort;
 import com.sy.side.stock.application.port.out.StockSearchPort;
 import com.sy.side.stock.error.StockErrorImpl;
-import java.math.BigDecimal;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -42,9 +42,9 @@ public class StockSearchQueryService
         StockSearchItemResult result = stockSearchPort.findBySrtnCd(srtnCd)
                 .orElseThrow(() -> new BizException(StockErrorImpl.STOCK_NOT_FOUND));
 
-        Map<String, BigDecimal> priceMap = result.getSrtnCd() == null
+        Map<String, StockPriceSnapshotResult> priceMap = result.getSrtnCd() == null
                 ? Map.of()
-                : stockPriceQueryPort.findLatestPriceMapBySrtnCd(Set.of(result.getSrtnCd()));
+                : stockPriceQueryPort.findLatestPriceSnapshotMapBySrtnCd(Set.of(result.getSrtnCd()));
 
         return withCurrentPrice(result, priceMap);
     }
@@ -54,7 +54,8 @@ public class StockSearchQueryService
                 .map(StockSearchItemResult::getSrtnCd)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
-        Map<String, BigDecimal> priceMap = stockPriceQueryPort.findLatestPriceMapBySrtnCd(srtnCds);
+        Map<String, StockPriceSnapshotResult> priceMap =
+                stockPriceQueryPort.findLatestPriceSnapshotMapBySrtnCd(srtnCds);
 
         return StockSearchResult.builder()
                 .query(result.getQuery())
@@ -68,8 +69,10 @@ public class StockSearchQueryService
 
     private StockSearchItemResult withCurrentPrice(
             StockSearchItemResult item,
-            Map<String, BigDecimal> priceMap
+            Map<String, StockPriceSnapshotResult> priceMap
     ) {
+        StockPriceSnapshotResult price = priceMap.get(item.getSrtnCd());
+
         return StockSearchItemResult.builder()
                 .srtnCd(item.getSrtnCd())
                 .isinCd(item.getIsinCd())
@@ -77,8 +80,10 @@ public class StockSearchQueryService
                 .itmsNm(item.getItmsNm())
                 .corpNm(item.getCorpNm())
                 .activeYn(item.getActiveYn())
-                .basDt(item.getBasDt())
-                .currentPrice(priceMap.get(item.getSrtnCd()))
+                .basDt(price == null ? item.getBasDt() : price.getBasDt())
+                .currentPrice(price == null ? null : price.getClosePrice())
+                .vs(price == null ? null : price.getVs())
+                .fltRt(price == null ? null : price.getFltRt())
                 .build();
     }
 }

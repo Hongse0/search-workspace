@@ -1,9 +1,9 @@
 package com.sy.side.stock.application.port.out;
 
-import java.math.BigDecimal;
+import com.sy.side.stock.application.dto.result.StockPriceSnapshotResult;
 import java.util.Map;
 import java.util.Set;
 
 public interface StockPriceQueryPort {
-    Map<String, BigDecimal> findLatestPriceMapBySrtnCd(Set<String> srtnCds);
+    Map<String, StockPriceSnapshotResult> findLatestPriceSnapshotMapBySrtnCd(Set<String> srtnCds);
 }
