@@ -13,6 +13,11 @@ import org.springframework.data.repository.query.Param;
 public interface StockPriceDailyRepository extends JpaRepository<StockPriceDaily, Long> {
     Optional<StockPriceDaily> findBySrtnCdAndBasDt(String srtnCd, String basDt);
     Optional<StockPriceDaily> findTopBySrtnCdOrderByBasDtDesc(String srtnCd);
+    List<StockPriceDaily> findTop61BySrtnCdOrderByBasDtDesc(String srtnCd);
+
+    @Query("SELECT MAX(s.basDt) FROM StockPriceDaily s")
+    String findLatestMarketBasDt();
+
     @Query(value = """
     SELECT 
         sim.id AS stockId,
